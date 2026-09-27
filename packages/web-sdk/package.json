@@ -1,0 +1,28 @@
+{
+  "name": "@traceflow/web-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/traceflow-web-sdk.js",
+  "module": "./dist/traceflow-web-sdk.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/traceflow-web-sdk.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@traceflow/shared": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3",
+    "vite": "^6.4.3",
+    "vitest": "^3.2.4"
+  }
+}

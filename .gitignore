@@ -1,0 +1,10 @@
+node_modules/
+dist/
+target/
+.idea/
+.vscode/
+*.iml
+*.log
+.env
+.env.local
+coverage/

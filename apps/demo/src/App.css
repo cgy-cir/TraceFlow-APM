@@ -1,0 +1,10 @@
+.demo-shell { margin: 0 auto; max-width: 920px; padding: 72px 24px; }
+.demo-shell header { border-bottom: 1px solid #d8dde3; margin-bottom: 32px; padding-bottom: 28px; }
+.eyebrow { color: #176b5b; font-size: 13px; font-weight: 700; text-transform: uppercase; }
+h1 { font-size: 36px; margin: 10px 0 12px; }
+p { color: #667085; margin: 0; }
+.demo-panel { border: 1px solid #d8dde3; border-radius: 8px; display: grid; gap: 24px; padding: 24px; }
+.demo-panel > div { display: grid; gap: 6px; }
+.label { color: #667085; font-size: 13px; }
+code { overflow-wrap: anywhere; }
+button { background: #176b5b; border: 0; border-radius: 6px; color: #fff; cursor: pointer; justify-self: start; padding: 10px 16px; }

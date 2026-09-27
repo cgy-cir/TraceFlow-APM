@@ -1,0 +1,23 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: traceflow-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: traceflow
+      MYSQL_USER: traceflow
+      MYSQL_PASSWORD: traceflow_dev
+      MYSQL_ROOT_PASSWORD: traceflow_root_dev
+      TZ: UTC
+    ports:
+      - "3306:3306"
+    volumes:
+      - traceflow_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ptraceflow_root_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  traceflow_mysql_data:

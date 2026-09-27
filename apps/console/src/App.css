@@ -1,0 +1,18 @@
+.app-shell { min-height: 100vh; }
+.app-sider { border-right: 1px solid #e8eaed; }
+.brand { align-items: center; color: #111827; display: flex; font-size: 17px; font-weight: 700; gap: 10px; height: 64px; padding: 0 20px; }
+.brand-mark { align-items: center; background: #176b5b; border-radius: 6px; color: #fff; display: inline-flex; font-size: 12px; height: 28px; justify-content: center; width: 28px; }
+.app-header { align-items: center; background: #fff; border-bottom: 1px solid #e8eaed; display: flex; height: 64px; justify-content: space-between; padding: 0 24px; }
+.app-content { background: #f7f8fa; padding: 24px; }
+.content-wrap { margin: 0 auto; max-width: 1280px; }
+.page-heading { margin-bottom: 20px; }
+.page-heading h1 { font-size: 24px; margin: 0 0 6px; }
+.page-heading p { color: #667085; margin: 0; }
+.metric-grid { display: grid; gap: 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 20px; }
+.metric-value { font-size: 28px; font-weight: 700; margin-top: 8px; }
+.metric-label { color: #667085; font-size: 13px; }
+.status-row { align-items: center; display: flex; gap: 8px; }
+
+@media (max-width: 900px) {
+  .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
