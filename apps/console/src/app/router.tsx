@@ -1,12 +1,13 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '../layouts/AppLayout'
+import { ApplicationEntryPage } from '../pages/ApplicationEntryPage'
 import { IssuesPage } from '../pages/IssuesPage'
 import { NetworkPage } from '../pages/NetworkPage'
 import { OverviewPage } from '../pages/OverviewPage'
 import { SettingsPage } from '../pages/SettingsPage'
 
 export const router = createBrowserRouter([
-  { path: '/', element: <Navigate to="/apps/demo/overview" replace /> },
+  { path: '/', element: <ApplicationEntryPage /> },
   {
     path: '/apps/:appId',
     element: <AppLayout />,

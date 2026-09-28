@@ -1,8 +1,10 @@
 spring:
   application:
     name: traceflow-server
+  profiles:
+    default: dev
   datasource:
-    url: ${TRACEFLOW_DB_URL:jdbc:mysql://localhost:3306/traceflow?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&connectionTimeZone=UTC}
+    url: ${TRACEFLOW_DB_URL:jdbc:mysql://localhost:3307/traceflow?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&connectionTimeZone=UTC}
     username: ${TRACEFLOW_DB_USERNAME:traceflow}
     password: ${TRACEFLOW_DB_PASSWORD:traceflow_dev}
   flyway:

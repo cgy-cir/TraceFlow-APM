@@ -1,6 +1,8 @@
 import { BugOutlined, DashboardOutlined, GlobalOutlined, SettingOutlined } from '@ant-design/icons'
+import { useQuery } from '@tanstack/react-query'
 import { Layout, Menu, Select, Typography } from 'antd'
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { listApplications } from '../api/client'
 import '../App.css'
 
 const { Header, Content, Sider } = Layout
@@ -18,6 +20,7 @@ export function AppLayout() {
   const { appId = 'demo' } = useParams()
   const pathSegments = location.pathname.split('/')
   const selectedKey = pathSegments[pathSegments.length - 1] || 'overview'
+  const applicationsQuery = useQuery({ queryKey: ['applications'], queryFn: listApplications })
 
   return (
     <Layout className="app-shell">
@@ -34,11 +37,13 @@ export function AppLayout() {
         <Header className="app-header">
           <Select
             aria-label="当前应用"
-            options={[{ label: 'Demo Web', value: 'demo' }]}
-            value={appId}
+            loading={applicationsQuery.isPending}
+            options={applicationsQuery.data?.map((application) => ({ label: application.name, value: application.id }))}
+            value={Number(appId)}
+            onChange={(nextAppId) => navigate(`/apps/${nextAppId}/${selectedKey}`)}
             style={{ width: 200 }}
           />
-          <Typography.Text type="secondary">M0 工程骨架</Typography.Text>
+          <Typography.Text type="secondary">M1 最小上报闭环</Typography.Text>
         </Header>
         <Content className="app-content">
           <div className="content-wrap">

@@ -1,10 +1,25 @@
-.demo-shell { margin: 0 auto; max-width: 920px; padding: 72px 24px; }
-.demo-shell header { border-bottom: 1px solid #d8dde3; margin-bottom: 32px; padding-bottom: 28px; }
-.eyebrow { color: #176b5b; font-size: 13px; font-weight: 700; text-transform: uppercase; }
-h1 { font-size: 36px; margin: 10px 0 12px; }
-p { color: #667085; margin: 0; }
-.demo-panel { border: 1px solid #d8dde3; border-radius: 8px; display: grid; gap: 24px; padding: 24px; }
-.demo-panel > div { display: grid; gap: 6px; }
-.label { color: #667085; font-size: 13px; }
-code { overflow-wrap: anywhere; }
-button { background: #176b5b; border: 0; border-radius: 6px; color: #fff; cursor: pointer; justify-self: start; padding: 10px 16px; }
+.demo-shell { margin: 0 auto; max-width: 1040px; padding: 48px 24px 72px; }
+.demo-shell > header { align-items: flex-end; border-bottom: 1px solid #d8dde3; display: flex; justify-content: space-between; margin-bottom: 32px; padding-bottom: 24px; }
+.eyebrow { color: #176b5b; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+h1 { font-size: 32px; letter-spacing: 0; margin: 8px 0 0; }
+h2 { font-size: 17px; letter-spacing: 0; margin: 0; }
+p { color: #667085; margin: 5px 0 0; }
+.connection { align-items: center; color: #475467; display: flex; font-size: 13px; gap: 8px; }
+.connection-dot { background: #16a34a; border-radius: 50%; height: 8px; width: 8px; }
+.scenario-section, .activity-section { border-bottom: 1px solid #e3e6ea; padding: 0 0 28px; margin-bottom: 28px; }
+.section-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 16px; }
+.action-grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.network-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.action-grid button { align-items: flex-start; background: #fff; border: 1px solid #cfd5dc; border-radius: 6px; color: #1f2937; cursor: pointer; display: flex; flex-direction: column; min-height: 76px; padding: 14px; text-align: left; }
+.action-grid button:hover { border-color: #176b5b; box-shadow: 0 2px 8px rgb(23 107 91 / 10%); }
+.action-grid button span { color: #667085; font-size: 12px; margin-top: 6px; }
+.flush-button { background: #176b5b; border: 0; border-radius: 6px; color: #fff; cursor: pointer; padding: 8px 14px; }
+.activity-section ul { list-style: none; margin: 0; padding: 0; }
+.activity-section li { align-items: center; border-top: 1px solid #edf0f2; display: grid; gap: 16px; grid-template-columns: 140px minmax(0, 1fr); min-height: 44px; }
+.activity-section code { color: #667085; overflow-wrap: anywhere; }
+.empty-state { border: 1px dashed #cfd5dc; padding: 22px; text-align: center; }
+
+@media (max-width: 760px) {
+  .demo-shell > header { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .action-grid, .network-actions { grid-template-columns: 1fr 1fr; }
+}

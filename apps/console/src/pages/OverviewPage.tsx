@@ -19,7 +19,7 @@ export function OverviewPage() {
 
   return (
     <>
-      <div className="page-heading"><h1>总览</h1><p>真实指标将在 M1 数据上报闭环完成后接入。</p></div>
+      <div className="page-heading"><h1>总览</h1><p>M1 已接通事件采集；聚合指标将在后续里程碑补充。</p></div>
       <div className="metric-grid">
         {metrics.map(([label, value]) => (
           <Card key={label} size="small"><div className="metric-label">{label}</div><div className="metric-value">{value}</div></Card>

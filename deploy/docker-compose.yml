@@ -10,7 +10,7 @@ services:
       MYSQL_ROOT_PASSWORD: traceflow_root_dev
       TZ: UTC
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - traceflow_mysql_data:/var/lib/mysql
     healthcheck:
