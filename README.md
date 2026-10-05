@@ -45,8 +45,13 @@ On Windows use `mvnw.cmd spring-boot:run`. The health endpoint is `http://localh
 ```bash
 npm run build
 npm test
+npx playwright install chromium
+npm run test:e2e
 cd server
 ./mvnw test
 ```
+
+The Playwright test starts the API, Console, and Demo automatically. MySQL must be running first. On Windows,
+an installed Chrome can be reused with `$env:PLAYWRIGHT_CHANNEL='chrome'` before `npm run test:e2e`.
 
 See [项目设计](docs/项目设计.md), [事件协议 v1](docs/事件协议-v1.md), and [数据库迁移 v1](docs/数据库迁移-v1.md) for the current design baseline.

@@ -11,10 +11,16 @@
     "dev:demo": "npm run dev -w @traceflow/demo",
     "build": "npm run build -w @traceflow/shared && npm run build -w @traceflow/web-sdk && npm run build -w @traceflow/console && npm run build -w @traceflow/demo",
     "test": "npm run build -w @traceflow/shared && npm run test -w @traceflow/web-sdk",
+    "pretest:e2e": "npm run build -w @traceflow/shared && npm run build -w @traceflow/web-sdk",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "lint": "npm run lint -w @traceflow/console && npm run lint -w @traceflow/demo"
   },
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
   }
 }
