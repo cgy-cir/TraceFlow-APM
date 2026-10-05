@@ -51,6 +51,28 @@ class EventValidationServiceTests {
         assertThat(result.code()).isEqualTo("INVALID_TIMESTAMP");
     }
 
+    @Test
+    void rejectsNestedBreadcrumbData() {
+        TraceEventRequest base = event(
+                "5f23b358-0ad7-4f1a-9d94-17f728842502",
+                NOW.toEpochMilli(),
+                Map.of("mechanism", "manual", "name", "Error", "message", "checkout failed"));
+        TraceEventRequest invalid = new TraceEventRequest(
+                base.eventId(), base.type(), base.timestamp(), base.sessionId(), base.anonymousId(),
+                base.environment(), base.release(), base.traceId(), base.page(), base.user(), base.device(),
+                base.tags(), List.of(Map.of(
+                        "timestamp", NOW.toEpochMilli(),
+                        "category", "custom",
+                        "level", "info",
+                        "data", Map.of("nested", Map.of("secret", "value")))),
+                base.payload());
+
+        var result = validationService.validate(invalid);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.message()).contains("breadcrumbs");
+    }
+
     private TraceEventRequest event(String eventId, long timestamp, Map<String, Object> payload) {
         return new TraceEventRequest(
                 eventId,

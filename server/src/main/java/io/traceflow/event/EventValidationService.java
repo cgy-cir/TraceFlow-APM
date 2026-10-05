@@ -20,6 +20,8 @@ public class EventValidationService {
     private static final Set<String> ERROR_MECHANISMS = Set.of("onerror", "unhandledrejection", "resource", "manual");
     private static final Set<String> HTTP_TRANSPORTS = Set.of("fetch", "xhr");
     private static final Set<String> HTTP_OUTCOMES = Set.of("success", "failure", "aborted");
+    private static final Set<String> BREADCRUMB_CATEGORIES = Set.of("navigation", "ui.click", "http", "console", "custom");
+    private static final Set<String> BREADCRUMB_LEVELS = Set.of("debug", "info", "warning", "error");
 
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -49,7 +51,7 @@ public class EventValidationService {
         if (event.user() != null && (isBlank(event.user().id()) || tooLong(event.user().id(), 100))) return invalid(event.eventId(), "INVALID_PAYLOAD", "user.id must not exceed 100 characters");
         if (!validDimensions(event)) return invalid(event.eventId(), "INVALID_PAYLOAD", "device dimensions must be integers from 0 to 20000");
         if (event.tags() != null && event.tags().size() > 20) return invalid(event.eventId(), "INVALID_PAYLOAD", "tags must not contain more than 20 items");
-        if (event.breadcrumbs() != null && event.breadcrumbs().size() > 50) return invalid(event.eventId(), "INVALID_PAYLOAD", "breadcrumbs must not contain more than 50 items");
+        if (!validBreadcrumbs(event.breadcrumbs())) return invalid(event.eventId(), "INVALID_PAYLOAD", "breadcrumbs are invalid or contain more than 50 items");
         if (event.payload() == null) return invalid(event.eventId(), "INVALID_PAYLOAD", "payload is required");
         if (objectMapper.writeValueAsBytes(event).length > 64 * 1024) return invalid(event.eventId(), "EVENT_TOO_LARGE", "event exceeds 64 KiB");
         return switch (event.type()) {
@@ -98,6 +100,29 @@ public class EventValidationService {
         return List.of(event.device().screenWidth(), event.device().screenHeight(),
                         event.device().viewportWidth(), event.device().viewportHeight())
                 .stream().allMatch(value -> value == null || value >= 0 && value <= 20000);
+    }
+
+    private boolean validBreadcrumbs(List<Map<String, Object>> breadcrumbs) {
+        if (breadcrumbs == null) return true;
+        if (breadcrumbs.size() > 50) return false;
+        for (Map<String, Object> breadcrumb : breadcrumbs) {
+            if (breadcrumb == null || !(breadcrumb.get("timestamp") instanceof Number timestamp)
+                    || timestamp.longValue() <= 0
+                    || !BREADCRUMB_CATEGORIES.contains(String.valueOf(breadcrumb.get("category")))
+                    || !BREADCRUMB_LEVELS.contains(String.valueOf(breadcrumb.get("level")))) return false;
+            Object message = breadcrumb.get("message");
+            if (message != null && (!(message instanceof String) || ((String) message).length() > 500)) return false;
+            Object data = breadcrumb.get("data");
+            if (data == null) continue;
+            if (!(data instanceof Map<?, ?> values) || values.size() > 20) return false;
+            if (values.entrySet().stream().anyMatch(entry -> !(entry.getKey() instanceof String)
+                    || !isBreadcrumbValue(entry.getValue()))) return false;
+        }
+        return true;
+    }
+
+    private boolean isBreadcrumbValue(Object value) {
+        return value == null || value instanceof String || value instanceof Number || value instanceof Boolean;
     }
 
     private boolean isHttpUrl(String value) {

@@ -11,9 +11,8 @@ import tools.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
+import java.util.HexFormat;
 import java.util.Map;
 
 @Service
@@ -22,12 +21,20 @@ public class EventWriter {
     private final IssueMapper issueMapper;
     private final UrlSanitizer urlSanitizer;
     private final ObjectMapper objectMapper;
+    private final ErrorFingerprintService fingerprintService;
+    private final IssueActorMapper issueActorMapper;
+    private final IssueStatusHistoryMapper statusHistoryMapper;
 
-    public EventWriter(EventMapper eventMapper, IssueMapper issueMapper, UrlSanitizer urlSanitizer, ObjectMapper objectMapper) {
+    public EventWriter(EventMapper eventMapper, IssueMapper issueMapper, UrlSanitizer urlSanitizer,
+                       ObjectMapper objectMapper, ErrorFingerprintService fingerprintService,
+                       IssueActorMapper issueActorMapper, IssueStatusHistoryMapper statusHistoryMapper) {
         this.eventMapper = eventMapper;
         this.issueMapper = issueMapper;
         this.urlSanitizer = urlSanitizer;
         this.objectMapper = objectMapper;
+        this.fingerprintService = fingerprintService;
+        this.issueActorMapper = issueActorMapper;
+        this.statusHistoryMapper = statusHistoryMapper;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -35,21 +42,36 @@ public class EventWriter {
         EventEntity event = toEntity(applicationId, batch, request, typedPayload);
         if (eventMapper.insertIgnore(event) == 0) return false;
         if (typedPayload instanceof ErrorPayload errorPayload) {
-            String fingerprint = fingerprint(errorPayload);
+            ErrorFingerprintService.FingerprintResult fingerprint = fingerprintService.fingerprint(errorPayload);
             IssueEntity issue = new IssueEntity();
             issue.setApplicationId(applicationId);
-            issue.setFingerprint(fingerprint);
+            issue.setFingerprint(fingerprint.value());
+            issue.setFingerprintVersion(fingerprint.version());
             issue.setTitle(errorPayload.message());
             issue.setErrorType(errorPayload.name());
+            issue.setStatusChangedAt(event.getReceivedAt());
             issue.setFirstSeenAt(event.getOccurredAt());
             issue.setLastSeenAt(event.getOccurredAt());
             issue.setCreatedAt(event.getReceivedAt());
             issue.setUpdatedAt(event.getReceivedAt());
-            issue.setAffectedUserCount(request.user() == null ? 0 : 1);
-            issueMapper.upsert(issue);
-            Long issueId = issueMapper.findId(applicationId, fingerprint);
+            int upsertResult = issueMapper.upsert(issue);
+            Long issueId = issueMapper.findId(applicationId, fingerprint.value());
+            if (upsertResult == 1) {
+                statusHistoryMapper.insert(issueId, null, "unresolved", "created",
+                        "Issue created from first event", null, event.getReceivedAt());
+            }
+            String actorKey = actorKey(request);
+            if (issueActorMapper.insertIgnore(issueId, actorKey, event.getOccurredAt()) == 1) {
+                issueMapper.incrementAffectedUserCount(issueId);
+            } else {
+                issueActorMapper.updateSeen(issueId, actorKey, event.getOccurredAt());
+            }
             eventMapper.attachIssue(event.getId(), issueId);
-            issueMapper.updateLatestEvent(issueId, event.getId());
+            issueMapper.updateLatestEvent(issueId, event.getId(), event.getOccurredAt());
+            if (issueMapper.markRegressed(issueId, event.getReceivedAt()) == 1) {
+                statusHistoryMapper.insert(issueId, "resolved", "regressed", "regression",
+                        "A new event occurred after the issue was resolved", null, event.getReceivedAt());
+            }
         }
         return true;
     }
@@ -98,14 +120,21 @@ public class EventWriter {
         return event;
     }
 
-    private String fingerprint(ErrorPayload payload) {
-        String firstFrame = payload.stack() == null ? "" : payload.stack().lines().skip(1).findFirst().orElse("");
-        String source = payload.mechanism() + '\n' + payload.name() + '\n' + payload.message() + '\n' + firstFrame;
+    private String actorKey(TraceEventRequest request) {
+        String source;
+        if (request.user() != null && request.user().id() != null && !request.user().id().isBlank()) {
+            source = "user:" + request.user().id();
+        } else if (request.anonymousId() != null && !request.anonymousId().isBlank()) {
+            source = "anonymous:" + request.anonymousId();
+        } else {
+            source = "session:" + request.sessionId();
+        }
         try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(source.getBytes(StandardCharsets.UTF_8));
-            return java.util.HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is not available", exception);
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(source.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (java.security.NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
         }
     }
 }

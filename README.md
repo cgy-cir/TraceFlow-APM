@@ -38,7 +38,7 @@ cd server
 ./mvnw spring-boot:run
 ```
 
-On Windows use `mvnw.cmd spring-boot:run`. The health endpoint is `http://localhost:8080/api/v1/health`.
+On Windows use `mvnw.cmd spring-boot:run`. The health endpoint is `http://localhost:18080/api/v1/health`.
 
 ## Verify
 

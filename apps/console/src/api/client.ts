@@ -15,12 +15,78 @@ export interface Issue {
   id: number
   title: string
   errorType: string
-  status: 'unresolved' | 'resolving' | 'resolved' | 'ignored'
+  status: IssueStatus
   level: string
   firstSeenAt: number
   lastSeenAt: number
   eventCount: number
   affectedUserCount: number
+  regressionCount: number
+}
+
+export type IssueStatus = 'unresolved' | 'resolving' | 'resolved' | 'ignored' | 'regressed'
+
+export interface StatusHistory {
+  id: number
+  fromStatus?: IssueStatus
+  toStatus: IssueStatus
+  changeType: 'created' | 'manual' | 'regression' | 'migration'
+  reason?: string
+  changedBy?: number
+  changedAt: number
+}
+
+export interface Breadcrumb {
+  timestamp: number
+  category: 'navigation' | 'ui.click' | 'http' | 'console' | 'custom'
+  level: 'debug' | 'info' | 'warning' | 'error'
+  message?: string
+  data?: Record<string, string | number | boolean | null>
+}
+
+export interface ErrorEventSummary {
+  id: number
+  eventId: string
+  occurredAt: number
+  environment: string
+  releaseName?: string
+  pageUrl: string
+  pagePath: string
+  userId?: string
+  anonymousId?: string
+  sessionId: string
+}
+
+export interface EventDetail extends ErrorEventSummary {
+  issueId: number
+  receivedAt: number
+  traceId?: string
+  errorName: string
+  errorMessage: string
+  payload: Record<string, unknown>
+  context: Record<string, unknown>
+  breadcrumbs?: Breadcrumb[]
+}
+
+export interface IssueDetail extends Issue {
+  fingerprint: string
+  fingerprintVersion: number
+  statusChangedAt: number
+  resolvedAt?: number
+  lastRegressedAt?: number
+  latestEvent?: EventDetail
+  statusHistory: StatusHistory[]
+}
+
+export interface IssueFilters {
+  status?: string
+  environment?: string
+  release?: string
+  userId?: string
+  query?: string
+  sort?: 'lastSeen' | 'firstSeen' | 'events'
+  from?: number
+  to?: number
 }
 
 export interface HttpEvent {
@@ -48,11 +114,38 @@ export async function listApplications() {
   return (await axios.get<{ items: Application[]; total: number }>('/api/v1/applications')).data.items
 }
 
-export async function listIssues(applicationId: number, status: string, page: number) {
+export async function listIssues(applicationId: number, filters: IssueFilters, page: number) {
   return (
     await axios.get<PagedResponse<Issue>>('/api/v1/issues', {
-      params: { applicationId, status: status || undefined, page },
+      params: { applicationId, ...filters, page },
     })
+  ).data
+}
+
+export async function getIssue(applicationId: number, issueId: number) {
+  return (await axios.get<IssueDetail>(`/api/v1/issues/${issueId}`, { params: { applicationId } })).data
+}
+
+export async function listIssueEvents(applicationId: number, issueId: number, page = 1) {
+  return (
+    await axios.get<PagedResponse<ErrorEventSummary>>(`/api/v1/issues/${issueId}/events`, {
+      params: { applicationId, page },
+    })
+  ).data
+}
+
+export async function getEvent(applicationId: number, eventId: number) {
+  return (await axios.get<EventDetail>(`/api/v1/events/${eventId}`, { params: { applicationId } })).data
+}
+
+export async function updateIssueStatus(
+  applicationId: number,
+  issueId: number,
+  status: IssueStatus,
+  reason?: string,
+) {
+  return (
+    await axios.patch<Issue>(`/api/v1/issues/${issueId}/status`, { applicationId, status, reason })
   ).data
 }
 

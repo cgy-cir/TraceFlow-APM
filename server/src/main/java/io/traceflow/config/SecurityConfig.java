@@ -26,12 +26,20 @@ public class SecurityConfig {
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Content-Type"));
+        CorsConfiguration ingestion = new CorsConfiguration();
+        // The ingestion service performs the authoritative appKey + Origin check against allowed_origins.
+        // CORS must let the preflight reach that application-level validation for independently hosted sites.
+        ingestion.setAllowedOriginPatterns(List.of("*"));
+        ingestion.setAllowedMethods(List.of("POST", "OPTIONS"));
+        ingestion.setAllowedHeaders(List.of("Content-Type"));
+
+        CorsConfiguration management = new CorsConfiguration();
+        management.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
+        management.setAllowedMethods(List.of("GET", "POST", "PATCH", "OPTIONS"));
+        management.setAllowedHeaders(List.of("Content-Type"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", configuration);
+        source.registerCorsConfiguration("/api/v1/events/batch", ingestion);
+        source.registerCorsConfiguration("/api/**", management);
         return source;
     }
 }

@@ -1,5 +1,6 @@
 import {
   EVENT_SCHEMA_VERSION,
+  type Breadcrumb,
   type ErrorEventV1,
   type EventBatchResponseV1,
   type EventBatchV1,
@@ -16,6 +17,9 @@ export interface TraceFlowOptions {
   autoCapture?: boolean
   flushInterval?: number
   maxBatchSize?: number
+  maxQueueSize?: number
+  maxBreadcrumbs?: number
+  captureClicks?: boolean
 }
 
 export interface TraceFlowClient {
@@ -24,6 +28,7 @@ export interface TraceFlowClient {
   createEmptyBatch(events?: TraceEventV1[]): EventBatchV1
   captureException(error: unknown, mechanism?: ErrorEventV1['payload']['mechanism']): string
   capturePageView(navigationType?: PageViewEventV1['payload']['navigationType'], from?: string): string
+  addBreadcrumb(breadcrumb: Omit<Breadcrumb, 'timestamp'> & { timestamp?: number }): void
   flush(): Promise<void>
   destroy(): void
 }
@@ -44,21 +49,28 @@ const SDK_VERSION = '0.1.0'
 const SENSITIVE_QUERY_KEYS = new Set([
   'token', 'access_token', 'code', 'password', 'secret', 'authorization', 'session',
 ])
+let activeBrowserClient: TraceFlowClient | undefined
 
 export function init(options: TraceFlowOptions): TraceFlowClient {
   if (!options.appKey.trim()) throw new Error('TraceFlow appKey is required')
   if (!options.endpoint.trim()) throw new Error('TraceFlow endpoint is required')
+
+  const browser = typeof window !== 'undefined'
+  if (browser && activeBrowserClient) return activeBrowserClient
 
   const normalizedOptions = Object.freeze({
     environment: 'development',
     autoCapture: true,
     flushInterval: 2_000,
     maxBatchSize: 10,
+    maxQueueSize: 100,
+    maxBreadcrumbs: 50,
+    captureClicks: true,
     ...options,
   })
   const queue: QueueEntry[] = []
+  const breadcrumbs = new BreadcrumbBuffer(normalizedOptions.maxBreadcrumbs)
   const cleanups: Array<() => void> = []
-  const browser = typeof window !== 'undefined'
   const nativeFetch = browser ? window.fetch.bind(window) : undefined
   let flushPromise: Promise<void> | undefined
   let destroyed = false
@@ -92,9 +104,13 @@ export function init(options: TraceFlowOptions): TraceFlowClient {
           colno: normalized.colno,
           handled: mechanism === 'manual',
         },
+        breadcrumbs: breadcrumbs.snapshot(),
       }
       enqueue(event)
       return event.eventId
+    },
+    addBreadcrumb(breadcrumb) {
+      breadcrumbs.add(normalizeBreadcrumb(breadcrumb))
     },
     capturePageView(navigationType = 'initial', from) {
       const to = browser ? `${window.location.pathname}${window.location.search}` : '/'
@@ -107,6 +123,12 @@ export function init(options: TraceFlowOptions): TraceFlowClient {
         payload: { navigationType, from, to: sanitizeUrl(to) },
       }
       enqueue(event)
+      client.addBreadcrumb({
+        category: 'navigation',
+        level: 'info',
+        message: 'Navigation',
+        data: { from: from ? sanitizeUrl(from) : null, to: sanitizeUrl(to), type: navigationType },
+      })
       return event.eventId
     },
     async flush() {
@@ -121,11 +143,16 @@ export function init(options: TraceFlowOptions): TraceFlowClient {
       destroyed = true
       cleanups.splice(0).forEach((cleanup) => cleanup())
       void client.flush()
+      if (activeBrowserClient === client) activeBrowserClient = undefined
     },
   }
 
   function enqueue(event: TraceEventV1) {
     if (destroyed) return
+    if (queue.length >= normalizedOptions.maxQueueSize) {
+      const disposableIndex = queue.findIndex(({ event: queuedEvent }) => queuedEvent.type !== 'error')
+      queue.splice(disposableIndex >= 0 ? disposableIndex : 0, 1)
+    }
     queue.push({ event, attempts: 0 })
     if (queue.length >= normalizedOptions.maxBatchSize) void client.flush()
   }
@@ -160,13 +187,15 @@ export function init(options: TraceFlowOptions): TraceFlowClient {
   }
 
   if (browser) {
+    activeBrowserClient = client
     const intervalId = window.setInterval(() => void client.flush(), normalizedOptions.flushInterval)
     cleanups.push(() => window.clearInterval(intervalId))
     if (normalizedOptions.autoCapture) {
       installErrorCapture(client, cleanups)
-      installFetchCapture(normalizedOptions, enqueue, cleanups)
-      installXhrCapture(normalizedOptions, enqueue, cleanups)
+      installFetchCapture(normalizedOptions, enqueue, client.addBreadcrumb, cleanups)
+      installXhrCapture(normalizedOptions, enqueue, client.addBreadcrumb, cleanups)
       installNavigationCapture(client, cleanups)
+      if (normalizedOptions.captureClicks) installClickCapture(client, cleanups)
       client.capturePageView('initial')
     }
     const pageHide = () => flushWithBeacon(normalizedOptions, queue, client)
@@ -201,6 +230,7 @@ function installErrorCapture(client: TraceFlowClient, cleanups: Array<() => void
 }
 
 function installFetchCapture(options: Readonly<RequiredTransportOptions>, enqueue: (event: TraceEventV1) => void,
+                             addBreadcrumb: TraceFlowClient['addBreadcrumb'],
                              cleanups: Array<() => void>) {
   const originalFetch = window.fetch
   window.fetch = async (...args) => {
@@ -212,13 +242,18 @@ function installFetchCapture(options: Readonly<RequiredTransportOptions>, enqueu
     const startedAt = performance.now()
     try {
       const response = await originalFetch(...args)
-      enqueue(createHttpEvent(options, 'fetch', method, url, response.status, performance.now() - startedAt,
-        response.status >= 200 && response.status < 400 ? 'success' : 'failure'))
+      const duration = performance.now() - startedAt
+      const outcome = response.status >= 200 && response.status < 400 ? 'success' : 'failure'
+      enqueue(createHttpEvent(options, 'fetch', method, url, response.status, duration, outcome))
+      addHttpBreadcrumb(addBreadcrumb, method, url, response.status, duration, outcome)
       return response
     } catch (error) {
       const aborted = error instanceof DOMException && error.name === 'AbortError'
-      enqueue(createHttpEvent(options, 'fetch', method, url, undefined, performance.now() - startedAt,
-        aborted ? 'aborted' : 'failure', normalizeError(error).message))
+      const duration = performance.now() - startedAt
+      const outcome = aborted ? 'aborted' : 'failure'
+      enqueue(createHttpEvent(options, 'fetch', method, url, undefined, duration, outcome,
+        normalizeError(error).message))
+      addHttpBreadcrumb(addBreadcrumb, method, url, undefined, duration, outcome)
       throw error
     }
   }
@@ -226,6 +261,7 @@ function installFetchCapture(options: Readonly<RequiredTransportOptions>, enqueu
 }
 
 function installXhrCapture(options: Readonly<RequiredTransportOptions>, enqueue: (event: TraceEventV1) => void,
+                           addBreadcrumb: TraceFlowClient['addBreadcrumb'],
                            cleanups: Array<() => void>) {
   const metadata = new WeakMap<XMLHttpRequest, XhrMetadata>()
   const originalOpen = XMLHttpRequest.prototype.open
@@ -240,14 +276,31 @@ function installXhrCapture(options: Readonly<RequiredTransportOptions>, enqueue:
       current.startedAt = performance.now()
       this.addEventListener('loadend', () => {
         const outcome = this.status === 0 ? 'failure' : this.status < 400 ? 'success' : 'failure'
-        enqueue(createHttpEvent(options, 'xhr', current.method, current.url, this.status || undefined,
-          performance.now() - current.startedAt, outcome))
+        const duration = performance.now() - current.startedAt
+        const status = this.status || undefined
+        enqueue(createHttpEvent(options, 'xhr', current.method, current.url, status, duration, outcome))
+        addHttpBreadcrumb(addBreadcrumb, current.method, current.url, status, duration, outcome)
       }, { once: true })
     }
     return originalSend.apply(this, args)
   }
   cleanups.push(() => { XMLHttpRequest.prototype.open = originalOpen })
   cleanups.push(() => { XMLHttpRequest.prototype.send = originalSend })
+}
+
+function installClickCapture(client: TraceFlowClient, cleanups: Array<() => void>) {
+  const onClick = (event: MouseEvent) => {
+    const element = event.target instanceof Element ? event.target.closest('button, a, input, select, textarea, [role="button"]') : null
+    if (!element || element.closest('[data-traceflow-mask]') || element instanceof HTMLInputElement && element.type === 'password') return
+    client.addBreadcrumb({
+      category: 'ui.click',
+      level: 'info',
+      message: 'Click',
+      data: { target: describeElement(element) },
+    })
+  }
+  document.addEventListener('click', onClick, true)
+  cleanups.push(() => document.removeEventListener('click', onClick, true))
 }
 
 function installNavigationCapture(client: TraceFlowClient, cleanups: Array<() => void>) {
@@ -292,6 +345,39 @@ function createHttpEvent(
       errorMessage,
     },
   }
+}
+
+function addHttpBreadcrumb(
+  addBreadcrumb: TraceFlowClient['addBreadcrumb'], method: string, url: string, status: number | undefined,
+  duration: number, outcome: 'success' | 'failure' | 'aborted',
+) {
+  addBreadcrumb({
+    category: 'http',
+    level: outcome === 'success' ? 'info' : outcome === 'aborted' ? 'warning' : 'error',
+    message: `${method} ${sanitizeUrl(url)}`.slice(0, 500),
+    data: {
+      method,
+      url: sanitizeUrl(url),
+      status: status ?? null,
+      duration: Math.max(0, Number(duration.toFixed(3))),
+      outcome,
+    },
+  })
+}
+
+function describeElement(element: Element) {
+  const tag = element.tagName.toLowerCase()
+  const identity = element.getAttribute('data-testid')
+    ? `[data-testid="${safeAttribute(element.getAttribute('data-testid')!)}"]`
+    : element.id ? `#${safeAttribute(element.id)}`
+      : element.getAttribute('name') ? `[name="${safeAttribute(element.getAttribute('name')!)}"]`
+        : element.getAttribute('aria-label') ? `[aria-label="${safeAttribute(element.getAttribute('aria-label')!)}"]`
+          : ''
+  return `${tag}${identity}`.slice(0, 200)
+}
+
+function safeAttribute(value: string) {
+  return value.replace(/[\u0000-\u001f\u007f"\\]/g, '').slice(0, 160)
 }
 
 function createBaseEvent(options: Pick<TraceFlowOptions, 'environment' | 'release'>) {
@@ -356,6 +442,34 @@ function safeStringify(value: unknown) {
   try { return JSON.stringify(value) ?? String(value) } catch { return String(value) }
 }
 
+class BreadcrumbBuffer {
+  private readonly entries: Breadcrumb[] = []
+
+  constructor(private readonly capacity: number) {}
+
+  add(breadcrumb: Breadcrumb) {
+    this.entries.push(breadcrumb)
+    if (this.entries.length > this.capacity) this.entries.splice(0, this.entries.length - this.capacity)
+  }
+
+  snapshot() {
+    return this.entries.map((entry) => ({ ...entry, data: entry.data ? { ...entry.data } : undefined }))
+  }
+}
+
+function normalizeBreadcrumb(breadcrumb: Omit<Breadcrumb, 'timestamp'> & { timestamp?: number }): Breadcrumb {
+  const dataEntries = Object.entries(breadcrumb.data ?? {}).slice(0, 20)
+  const data = Object.fromEntries(dataEntries.filter(([, value]) =>
+    value === null || ['string', 'number', 'boolean'].includes(typeof value)))
+  return {
+    timestamp: breadcrumb.timestamp ?? Date.now(),
+    category: breadcrumb.category,
+    level: breadcrumb.level,
+    message: breadcrumb.message?.slice(0, 500),
+    data: Object.keys(data).length > 0 ? data : undefined,
+  }
+}
+
 function sanitizeUrl(value: string) {
   try {
     const base = typeof location === 'undefined' ? 'http://localhost' : location.origin
@@ -393,6 +507,7 @@ function randomId() {
 }
 
 export type {
+  Breadcrumb,
   ErrorEventV1,
   EventBatchResponseV1,
   EventBatchV1,

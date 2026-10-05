@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { init } from '@traceflow/web-sdk'
 import './App.css'
 
-const endpoint = import.meta.env.VITE_TRACEFLOW_ENDPOINT ?? 'http://localhost:8080/api/v1/events/batch'
+const endpoint = import.meta.env.VITE_TRACEFLOW_ENDPOINT ?? 'http://localhost:18080/api/v1/events/batch'
 const apiOrigin = new URL(endpoint).origin
 
 const traceFlow = init({
@@ -27,7 +27,14 @@ function App() {
   }
 
   function captureManualError() {
-    const eventId = traceFlow.captureException(new Error('Demo manual checkout failure'))
+    const orderId = Math.floor(10_000 + Math.random() * 90_000)
+    traceFlow.addBreadcrumb({
+      category: 'custom',
+      level: 'info',
+      message: 'Checkout submitted',
+      data: { orderId },
+    })
+    const eventId = traceFlow.captureException(new Error(`Demo checkout ${orderId} failed`))
     record('手动错误', eventId)
   }
 

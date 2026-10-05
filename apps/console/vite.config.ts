@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       port: 5173,
-      proxy: { '/api': env.VITE_TRACEFLOW_API_TARGET ?? 'http://localhost:8080' },
+      proxy: { '/api': env.VITE_TRACEFLOW_API_TARGET ?? 'http://localhost:18080' },
     },
   }
 })
