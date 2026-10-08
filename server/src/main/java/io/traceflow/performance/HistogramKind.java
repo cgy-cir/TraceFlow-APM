@@ -22,6 +22,10 @@ public enum HistogramKind {
         return upperBounds.length;
     }
 
+    public BigDecimal upperBound(int bucketIndex) {
+        return bucketIndex >= 0 && bucketIndex < upperBounds.length ? upperBounds[bucketIndex] : null;
+    }
+
     public static HistogramKind forMetric(String metricName, String unit) {
         if ("score".equals(unit) && "CLS".equals(metricName)) return CLS_SCORE_V1;
         if ("bytes".equals(unit)) return SIZE_BYTES_V1;

@@ -22,6 +22,7 @@ traceflow:
     aggregation-enabled: ${TRACEFLOW_PERFORMANCE_AGGREGATION_ENABLED:true}
     aggregation-delay-ms: ${TRACEFLOW_PERFORMANCE_AGGREGATION_DELAY_MS:10000}
     aggregation-batch-size: ${TRACEFLOW_PERFORMANCE_AGGREGATION_BATCH_SIZE:1000}
+    low-sample-threshold: ${TRACEFLOW_PERFORMANCE_LOW_SAMPLE_THRESHOLD:20}
 
 management:
   endpoints:
