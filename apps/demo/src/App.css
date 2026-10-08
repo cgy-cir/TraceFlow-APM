@@ -10,6 +10,8 @@ p { color: #667085; margin: 5px 0 0; }
 .section-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 16px; }
 .action-grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .network-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.performance-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.shift-banner { background: #fff4e5; border: 1px solid #f0b45b; color: #7a3e00; margin-bottom: 20px; padding: 14px 16px; }
 .action-grid button { align-items: flex-start; background: #fff; border: 1px solid #cfd5dc; border-radius: 6px; color: #1f2937; cursor: pointer; display: flex; flex-direction: column; min-height: 76px; padding: 14px; text-align: left; }
 .action-grid button:hover { border-color: #176b5b; box-shadow: 0 2px 8px rgb(23 107 91 / 10%); }
 .action-grid button span { color: #667085; font-size: 12px; margin-top: 6px; }
@@ -21,5 +23,6 @@ p { color: #667085; margin: 5px 0 0; }
 
 @media (max-width: 760px) {
   .demo-shell > header { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .section-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
   .action-grid, .network-actions { grid-template-columns: 1fr 1fr; }
 }

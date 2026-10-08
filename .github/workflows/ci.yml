@@ -64,7 +64,7 @@ jobs:
         run: ./mvnw --batch-mode --no-transfer-progress test
 
   e2e:
-    name: M2 end-to-end
+    name: M2 and M3 end-to-end
     needs: [frontend, backend]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -109,7 +109,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run M2 end-to-end test
+      - name: Run end-to-end tests
         run: npm run test:e2e
 
       - name: Upload Playwright report

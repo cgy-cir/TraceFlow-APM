@@ -5,6 +5,7 @@ import { IssuesPage } from '../pages/IssuesPage'
 import { IssueDetailPage } from '../pages/IssueDetailPage'
 import { NetworkPage } from '../pages/NetworkPage'
 import { OverviewPage } from '../pages/OverviewPage'
+import { PerformancePage } from '../pages/PerformancePage'
 import { SettingsPage } from '../pages/SettingsPage'
 
 export const router = createBrowserRouter([
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
       { path: 'issues', element: <IssuesPage /> },
       { path: 'issues/:issueId', element: <IssueDetailPage /> },
       { path: 'network', element: <NetworkPage /> },
+      { path: 'performance', element: <PerformancePage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
   },

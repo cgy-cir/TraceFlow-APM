@@ -1,4 +1,4 @@
-import { BugOutlined, DashboardOutlined, GlobalOutlined, SettingOutlined } from '@ant-design/icons'
+import { BugOutlined, DashboardOutlined, FundProjectionScreenOutlined, GlobalOutlined, SettingOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { Layout, Menu, Select, Typography } from 'antd'
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -12,6 +12,7 @@ const items = [
   { key: 'overview', icon: <DashboardOutlined />, label: '总览' },
   { key: 'issues', icon: <BugOutlined />, label: '错误' },
   { key: 'network', icon: <GlobalOutlined />, label: '请求' },
+  { key: 'performance', icon: <FundProjectionScreenOutlined />, label: '性能' },
   { key: 'settings', icon: <SettingOutlined />, label: '设置' },
 ]
 
@@ -44,7 +45,7 @@ export function AppLayout() {
             onChange={(nextAppId) => navigate(`/apps/${nextAppId}/${selectedKey}`)}
             style={{ width: 200 }}
           />
-          <Typography.Text type="secondary">M2 错误诊断</Typography.Text>
+          <Typography.Text type="secondary">M3 性能监控</Typography.Text>
         </Header>
         <Content className="app-content">
           <div className="content-wrap">

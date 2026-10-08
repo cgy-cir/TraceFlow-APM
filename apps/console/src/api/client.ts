@@ -110,6 +110,115 @@ export interface PagedResponse<T> {
   pageSize: number
 }
 
+export interface PerformanceFilters {
+  from: number
+  to: number
+  environment?: string
+  release?: string
+  pagePath?: string
+  deviceType?: 'desktop' | 'mobile' | 'tablet' | 'unknown'
+}
+
+export interface RatingCounts {
+  good: number
+  needsImprovement: number
+  poor: number
+}
+
+export interface MetricSummary {
+  metric: string
+  unit: 'ms' | 'score' | 'bytes'
+  sampleCount: number
+  p75: number | null
+  p95: number | null
+  average: number | null
+  ratings: RatingCounts
+  percentileMethod: 'fixed_histogram_v1'
+}
+
+export interface PerformanceSummary {
+  from: number
+  to: number
+  metrics: MetricSummary[]
+  percentileMethod: 'fixed_histogram_v1'
+}
+
+export interface TrendPoint {
+  timestamp: number
+  sampleCount: number
+  p75: number | null
+  p95: number | null
+  average: number | null
+}
+
+export interface TrendSeries {
+  metric: string
+  unit: string
+  points: TrendPoint[]
+}
+
+export interface PerformanceTrends {
+  from: number
+  to: number
+  interval: 'hour' | 'day'
+  series: TrendSeries[]
+  percentileMethod: 'fixed_histogram_v1'
+}
+
+export interface PagePerformance {
+  pagePath: string
+  sampleCount: number
+  lcpP75: number | null
+  inpP75: number | null
+  clsP75: number | null
+  poorRate: number
+  lowSample: boolean
+}
+
+export interface PerformancePages {
+  from: number
+  to: number
+  items: PagePerformance[]
+  lowSampleThreshold: number
+  percentileMethod: 'fixed_histogram_v1'
+}
+
+export interface ResourceDetail {
+  id: number
+  eventId: string
+  occurredAt: number
+  environment: string
+  release?: string
+  pageUrl: string
+  pagePath: string
+  url: string
+  resourceType: string
+  durationMs: number
+  transferSize: number | null
+  encodedBodySize: number | null
+  decodedBodySize: number | null
+  nextHopProtocol?: string
+  renderBlockingStatus?: string
+}
+
+export interface ResourcesResponse {
+  from: number
+  to: number
+  items: ResourceDetail[]
+}
+
+export interface OverviewResponse {
+  from: number
+  to: number
+  coreWebVitals: MetricSummary[]
+  performanceSampleCount: number
+  errorEventCount: number
+  httpEventCount: number
+  failedHttpEventCount: number
+  worstPages: PagePerformance[]
+  percentileMethod: 'fixed_histogram_v1'
+}
+
 export async function listApplications() {
   return (await axios.get<{ items: Application[]; total: number }>('/api/v1/applications')).data.items
 }
@@ -155,4 +264,47 @@ export async function listHttpEvents(applicationId: number, outcome: string, pag
       params: { applicationId, outcome: outcome || undefined, page },
     })
   ).data
+}
+
+function performanceParams(applicationId: number, filters: PerformanceFilters) {
+  return { applicationId, ...filters }
+}
+
+export async function getPerformanceSummary(
+  applicationId: number,
+  filters: PerformanceFilters,
+  metrics?: string[],
+) {
+  return (await axios.get<PerformanceSummary>('/api/v1/performance/summary', {
+    params: { ...performanceParams(applicationId, filters), metrics: metrics?.join(',') },
+  })).data
+}
+
+export async function getPerformanceTrends(
+  applicationId: number,
+  filters: PerformanceFilters,
+  metrics: string[],
+  interval: 'hour' | 'day',
+) {
+  return (await axios.get<PerformanceTrends>('/api/v1/performance/trends', {
+    params: { ...performanceParams(applicationId, filters), metrics: metrics.join(','), interval },
+  })).data
+}
+
+export async function getPerformancePages(applicationId: number, filters: PerformanceFilters, limit = 20) {
+  return (await axios.get<PerformancePages>('/api/v1/performance/pages', {
+    params: { ...performanceParams(applicationId, filters), limit },
+  })).data
+}
+
+export async function getResources(applicationId: number, filters: PerformanceFilters, limit = 100) {
+  return (await axios.get<ResourcesResponse>('/api/v1/resources', {
+    params: { ...performanceParams(applicationId, filters), limit },
+  })).data
+}
+
+export async function getOverview(applicationId: number, filters: PerformanceFilters) {
+  return (await axios.get<OverviewResponse>('/api/v1/overview', {
+    params: performanceParams(applicationId, filters),
+  })).data
 }

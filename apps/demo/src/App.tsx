@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { init } from '@traceflow/web-sdk'
 import './App.css'
 
@@ -10,6 +10,7 @@ const traceFlow = init({
   endpoint,
   environment: 'development',
   release: 'demo-web@0.1.0',
+  resourceSampleRate: 1,
 })
 
 interface Activity {
@@ -18,8 +19,21 @@ interface Activity {
   detail: string
 }
 
+let performanceWarmupStarted = false
+
 function App() {
   const [activities, setActivities] = useState<Activity[]>([])
+  const [showShiftBanner, setShowShiftBanner] = useState(false)
+
+  useEffect(() => {
+    // React vs Vue: effect 对应 onMounted；开发模式 StrictMode 会额外执行一次 setup/cleanup，因此显式守卫副作用。
+    if (performanceWarmupStarted) return
+    performanceWarmupStarted = true
+    void Promise.allSettled([
+      fetch(`${apiOrigin}/api/v1/health?source=performance-demo`),
+      fetch(`${apiOrigin}/api/v1/applications?source=performance-demo`),
+    ])
+  }, [])
 
   function record(label: string, detail: string) {
     // React vs Vue: 数组状态需要创建新引用；不能像 Vue 的响应式数组那样直接 push 后期待界面更新。
@@ -71,8 +85,23 @@ function App() {
     record('立即上报', '队列刷新完成')
   }
 
+  function blockMainThread() {
+    const startedAt = performance.now()
+    while (performance.now() - startedAt < 240) {
+      Math.sqrt(Math.random() * 10_000)
+    }
+    record('慢交互', `${Math.round(performance.now() - startedAt)} ms 主线程任务`)
+  }
+
+  function triggerLayoutShift() {
+    record('布局偏移', '延迟插入横幅')
+    window.setTimeout(() => setShowShiftBanner(true), 700)
+    window.setTimeout(() => setShowShiftBanner(false), 3_200)
+  }
+
   return (
     <main className="demo-shell">
+      {showShiftBanner && <div className="shift-banner" data-traceflow-name="delayed-offer">结算服务临时维护通知</div>}
       <header>
         <div><span className="eyebrow">TraceFlow Demo</span><h1>监控事件实验台</h1></div>
         <div className="connection"><span className="connection-dot" />SDK v{traceFlow.schemaVersion} 已启用</div>
@@ -94,6 +123,15 @@ function App() {
           <button type="button" onClick={() => void runFetch('/api/v1/missing', 'Fetch 失败')}><strong>Fetch 404</strong><span>失败响应</span></button>
           <button type="button" onClick={() => runXhr('/api/v1/health', 'XHR 成功')}><strong>XHR 200</strong><span>健康检查</span></button>
           <button type="button" onClick={() => runXhr('/api/v1/missing', 'XHR 失败')}><strong>XHR 404</strong><span>失败响应</span></button>
+        </div>
+      </section>
+
+      <section className="scenario-section">
+        <div className="section-heading"><h2>性能场景</h2><p>触发浏览器可观测的交互延迟与布局变化。</p></div>
+        <div className="action-grid performance-actions">
+          <button type="button" data-traceflow-name="slow-interaction" onClick={blockMainThread}><strong>慢交互</strong><span>240 ms 主线程任务</span></button>
+          <button type="button" data-traceflow-name="layout-shift" onClick={triggerLayoutShift}><strong>布局偏移</strong><span>延迟插入内容</span></button>
+          <button type="button" onClick={() => window.location.reload()}><strong>重新采集</strong><span>Navigation 与初始资源</span></button>
         </div>
       </section>
 
