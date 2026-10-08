@@ -1,6 +1,6 @@
 export const EVENT_SCHEMA_VERSION = 1 as const
 
-export type EventType = 'page_view' | 'error' | 'http'
+export type EventType = 'page_view' | 'error' | 'http' | 'performance' | 'resource'
 
 export interface SdkContext {
   name: '@traceflow/web-sdk'
@@ -89,7 +89,95 @@ export interface HttpEventV1 extends TraceEventBaseV1 {
   }
 }
 
-export type TraceEventV1 = PageViewEventV1 | ErrorEventV1 | HttpEventV1
+export type WebVitalName = 'LCP' | 'CLS' | 'INP' | 'FCP' | 'TTFB'
+
+export type MetricRating = 'good' | 'needs-improvement' | 'poor'
+
+export type WebVitalNavigationType =
+  | 'navigate'
+  | 'reload'
+  | 'back-forward'
+  | 'back-forward-cache'
+  | 'prerender'
+  | 'restore'
+  | 'soft-navigation'
+  | 'other'
+
+export interface WebVitalAttributionV1 {
+  target?: string
+  resourceUrl?: string
+  interactionType?: string
+  timeToFirstByte?: number
+  resourceLoadDelay?: number
+  resourceLoadDuration?: number
+  elementRenderDelay?: number
+  largestShiftTime?: number
+  largestShiftValue?: number
+  inputDelay?: number
+  processingDuration?: number
+  presentationDelay?: number
+}
+
+export interface WebVitalPayloadV1 {
+  kind: 'web_vital'
+  metricName: WebVitalName
+  measurementId: string
+  value: number
+  delta: number
+  unit: 'ms' | 'score'
+  rating: MetricRating
+  navigationType: WebVitalNavigationType
+  attribution?: WebVitalAttributionV1
+}
+
+export type DocumentNavigationType = 'navigate' | 'reload' | 'back-forward' | 'prerender' | 'other'
+
+export interface NavigationTimingPayloadV1 {
+  kind: 'navigation'
+  navigationType: DocumentNavigationType
+  redirectCount: number
+  dns: number
+  tcp: number
+  tls: number
+  request: number
+  response: number
+  domInteractive: number
+  domContentLoaded: number
+  load: number
+  transferSize?: number
+  encodedBodySize?: number
+  decodedBodySize?: number
+}
+
+export interface PerformanceEventV1 extends TraceEventBaseV1 {
+  type: 'performance'
+  payload: WebVitalPayloadV1 | NavigationTimingPayloadV1
+  breadcrumbs?: never
+}
+
+export interface ResourceEventV1 extends TraceEventBaseV1 {
+  type: 'resource'
+  payload: {
+    url: string
+    initiatorType: string
+    startTime: number
+    duration: number
+    transferSize?: number
+    encodedBodySize?: number
+    decodedBodySize?: number
+    sizeAvailable: boolean
+    nextHopProtocol?: string
+    renderBlockingStatus?: 'blocking' | 'non-blocking'
+  }
+  breadcrumbs?: never
+}
+
+export type TraceEventV1 =
+  | PageViewEventV1
+  | ErrorEventV1
+  | HttpEventV1
+  | PerformanceEventV1
+  | ResourceEventV1
 
 export interface EventBatchV1 {
   schemaVersion: typeof EVENT_SCHEMA_VERSION

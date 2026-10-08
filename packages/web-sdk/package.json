@@ -18,7 +18,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@traceflow/shared": "0.1.0"
+    "@traceflow/shared": "0.1.0",
+    "web-vitals": "6.2.3"
   },
   "devDependencies": {
     "typescript": "~5.8.3",

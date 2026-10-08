@@ -27,6 +27,15 @@ public class EventEntity {
     private Integer httpStatus;
     private BigDecimal httpDurationMs;
     private String httpOutcome;
+    private String performanceKind;
+    private String metricName;
+    private String measurementId;
+    private BigDecimal metricValue;
+    private String metricUnit;
+    private String metricRating;
+    private String resourceUrl;
+    private String resourceType;
+    private BigDecimal resourceDurationMs;
     private String payload;
     private String context;
     private String breadcrumbs;
@@ -79,6 +88,24 @@ public class EventEntity {
     public void setHttpDurationMs(BigDecimal httpDurationMs) { this.httpDurationMs = httpDurationMs; }
     public String getHttpOutcome() { return httpOutcome; }
     public void setHttpOutcome(String httpOutcome) { this.httpOutcome = httpOutcome; }
+    public String getPerformanceKind() { return performanceKind; }
+    public void setPerformanceKind(String performanceKind) { this.performanceKind = performanceKind; }
+    public String getMetricName() { return metricName; }
+    public void setMetricName(String metricName) { this.metricName = metricName; }
+    public String getMeasurementId() { return measurementId; }
+    public void setMeasurementId(String measurementId) { this.measurementId = measurementId; }
+    public BigDecimal getMetricValue() { return metricValue; }
+    public void setMetricValue(BigDecimal metricValue) { this.metricValue = metricValue; }
+    public String getMetricUnit() { return metricUnit; }
+    public void setMetricUnit(String metricUnit) { this.metricUnit = metricUnit; }
+    public String getMetricRating() { return metricRating; }
+    public void setMetricRating(String metricRating) { this.metricRating = metricRating; }
+    public String getResourceUrl() { return resourceUrl; }
+    public void setResourceUrl(String resourceUrl) { this.resourceUrl = resourceUrl; }
+    public String getResourceType() { return resourceType; }
+    public void setResourceType(String resourceType) { this.resourceType = resourceType; }
+    public BigDecimal getResourceDurationMs() { return resourceDurationMs; }
+    public void setResourceDurationMs(BigDecimal resourceDurationMs) { this.resourceDurationMs = resourceDurationMs; }
     public String getPayload() { return payload; }
     public void setPayload(String payload) { this.payload = payload; }
     public String getContext() { return context; }

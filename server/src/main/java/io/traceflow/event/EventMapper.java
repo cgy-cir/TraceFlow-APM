@@ -14,11 +14,15 @@ public interface EventMapper {
                 event_id, application_id, issue_id, schema_version, type, occurred_at, received_at,
                 environment, release_name, session_id, anonymous_id, user_id, trace_id, page_url, page_path,
                 error_name, error_message, http_method, http_url, http_status, http_duration_ms, http_outcome,
+                performance_kind, metric_name, measurement_id, metric_value, metric_unit, metric_rating,
+                resource_url, resource_type, resource_duration_ms,
                 payload, context, breadcrumbs, created_at
             ) VALUES (
                 #{eventId}, #{applicationId}, #{issueId}, #{schemaVersion}, #{type}, #{occurredAt}, #{receivedAt},
                 #{environment}, #{releaseName}, #{sessionId}, #{anonymousId}, #{userId}, #{traceId}, #{pageUrl}, #{pagePath},
                 #{errorName}, #{errorMessage}, #{httpMethod}, #{httpUrl}, #{httpStatus}, #{httpDurationMs}, #{httpOutcome},
+                #{performanceKind}, #{metricName}, #{measurementId}, #{metricValue}, #{metricUnit}, #{metricRating},
+                #{resourceUrl}, #{resourceType}, #{resourceDurationMs},
                 #{payload}, #{context}, #{breadcrumbs}, #{createdAt}
             )
             """)

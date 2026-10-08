@@ -25,6 +25,19 @@ describe('init', () => {
     )
   })
 
+  it('rejects invalid performance sampling options', () => {
+    expect(() => init({
+      appKey: 'demo',
+      endpoint: '/api/v1/events/batch',
+      performanceSampleRate: 1.1,
+    })).toThrow('sample rates')
+    expect(() => init({
+      appKey: 'demo',
+      endpoint: '/api/v1/events/batch',
+      maxResourcesPerPage: 201,
+    })).toThrow('maxResourcesPerPage')
+  })
+
   it('attaches a defensive breadcrumb snapshot to an error event', async () => {
     const fetchMock = installBrowser()
     const client = init({

@@ -3,6 +3,9 @@ package io.traceflow.event;
 import io.traceflow.event.EventBatchRequest.TraceEventRequest;
 import io.traceflow.event.EventValidationService.ErrorPayload;
 import io.traceflow.event.EventValidationService.HttpPayload;
+import io.traceflow.event.EventValidationService.NavigationTimingPayload;
+import io.traceflow.event.EventValidationService.ResourcePayload;
+import io.traceflow.event.EventValidationService.WebVitalPayload;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -107,6 +110,21 @@ public class EventWriter {
             event.setHttpOutcome(http.outcome());
             payload.put("method", http.method().toUpperCase());
             payload.put("url", event.getHttpUrl());
+        } else if (typedPayload instanceof WebVitalPayload metric) {
+            event.setPerformanceKind(metric.kind());
+            event.setMetricName(metric.metricName());
+            event.setMeasurementId(metric.measurementId());
+            event.setMetricValue(decimal(metric.value(), 4));
+            event.setMetricUnit(metric.unit());
+            event.setMetricRating(metric.rating());
+            sanitizeAttributionResourceUrl(payload);
+        } else if (typedPayload instanceof NavigationTimingPayload navigation) {
+            event.setPerformanceKind(navigation.kind());
+        } else if (typedPayload instanceof ResourcePayload resource) {
+            event.setResourceUrl(urlSanitizer.sanitize(resource.url()));
+            event.setResourceType(resource.initiatorType());
+            event.setResourceDurationMs(decimal(resource.duration(), 3));
+            payload.put("url", event.getResourceUrl());
         }
         event.setPayload(objectMapper.writeValueAsString(payload));
         Map<String, Object> context = new LinkedHashMap<>();
@@ -118,6 +136,22 @@ public class EventWriter {
         event.setContext(objectMapper.writeValueAsString(context));
         event.setBreadcrumbs(request.breadcrumbs() == null ? null : objectMapper.writeValueAsString(request.breadcrumbs()));
         return event;
+    }
+
+    private BigDecimal decimal(double value, int scale) {
+        return BigDecimal.valueOf(value).setScale(scale, RoundingMode.HALF_UP);
+    }
+
+    private void sanitizeAttributionResourceUrl(Map<String, Object> payload) {
+        Object rawAttribution = payload.get("attribution");
+        if (!(rawAttribution instanceof Map<?, ?> rawValues)) return;
+        Map<String, Object> attribution = new LinkedHashMap<>();
+        rawValues.forEach((key, value) -> attribution.put(String.valueOf(key), value));
+        Object resourceUrl = attribution.get("resourceUrl");
+        if (resourceUrl instanceof String value) {
+            attribution.put("resourceUrl", urlSanitizer.sanitize(value));
+        }
+        payload.put("attribution", attribution);
     }
 
     private String actorKey(TraceEventRequest request) {

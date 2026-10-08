@@ -6,10 +6,15 @@ import {
   type EventBatchV1,
   type HttpEventV1,
   type PageViewEventV1,
+  type PerformanceEventV1,
+  type ResourceEventV1,
   type TraceEventV1,
 } from '@traceflow/shared'
+import { installPerformanceCapture, type PerformanceCaptureOptions } from './performance'
 
-export interface TraceFlowOptions {
+export type TraceFlowPerformanceOptions = Omit<PerformanceCaptureOptions, 'endpoint'>
+
+export interface TraceFlowOptions extends Partial<TraceFlowPerformanceOptions> {
   appKey: string
   endpoint: string
   environment?: string
@@ -66,8 +71,14 @@ export function init(options: TraceFlowOptions): TraceFlowClient {
     maxQueueSize: 100,
     maxBreadcrumbs: 50,
     captureClicks: true,
+    capturePerformance: true,
+    captureResources: true,
+    performanceSampleRate: 1,
+    resourceSampleRate: 0.2,
+    maxResourcesPerPage: 50,
     ...options,
   })
+  validatePerformanceOptions(normalizedOptions)
   const queue: QueueEntry[] = []
   const breadcrumbs = new BreadcrumbBuffer(normalizedOptions.maxBreadcrumbs)
   const cleanups: Array<() => void> = []
@@ -149,9 +160,12 @@ export function init(options: TraceFlowOptions): TraceFlowClient {
 
   function enqueue(event: TraceEventV1) {
     if (destroyed) return
+    if (normalizedOptions.maxQueueSize <= 0) return
     if (queue.length >= normalizedOptions.maxQueueSize) {
-      const disposableIndex = queue.findIndex(({ event: queuedEvent }) => queuedEvent.type !== 'error')
-      queue.splice(disposableIndex >= 0 ? disposableIndex : 0, 1)
+      const disposableIndex = queue.reduce((candidate, entry, index, entries) =>
+        queuePriority(entry.event) < queuePriority(entries[candidate].event) ? index : candidate, 0)
+      if (queuePriority(queue[disposableIndex].event) > queuePriority(event)) return
+      queue.splice(disposableIndex, 1)
     }
     queue.push({ event, attempts: 0 })
     if (queue.length >= normalizedOptions.maxBatchSize) void client.flush()
@@ -196,7 +210,21 @@ export function init(options: TraceFlowOptions): TraceFlowClient {
       installXhrCapture(normalizedOptions, enqueue, client.addBreadcrumb, cleanups)
       installNavigationCapture(client, cleanups)
       if (normalizedOptions.captureClicks) installClickCapture(client, cleanups)
+      installPerformanceCapture(normalizedOptions, {
+        createBaseEvent: () => createBaseEvent(normalizedOptions),
+        enqueue,
+        flush: client.flush,
+        sanitizeUrl,
+        isCollectorUrl: (value) => isCollectorUrl(value, normalizedOptions.endpoint),
+      }, cleanups)
       client.capturePageView('initial')
+    }
+    const visibilityChange = () => {
+      if (document.visibilityState === 'hidden') void client.flush()
+    }
+    if (typeof document.addEventListener === 'function') {
+      document.addEventListener('visibilitychange', visibilityChange)
+      cleanups.push(() => document.removeEventListener('visibilitychange', visibilityChange))
     }
     const pageHide = () => flushWithBeacon(normalizedOptions, queue, client)
     window.addEventListener('pagehide', pageHide)
@@ -204,6 +232,27 @@ export function init(options: TraceFlowOptions): TraceFlowClient {
   }
 
   return client
+}
+
+function validatePerformanceOptions(options: Readonly<PerformanceCaptureOptions>) {
+  if (!validRate(options.performanceSampleRate) || !validRate(options.resourceSampleRate)) {
+    throw new Error('TraceFlow sample rates must be between 0 and 1')
+  }
+  if (!Number.isInteger(options.maxResourcesPerPage)
+      || options.maxResourcesPerPage < 0 || options.maxResourcesPerPage > 200) {
+    throw new Error('TraceFlow maxResourcesPerPage must be an integer between 0 and 200')
+  }
+}
+
+function validRate(value: number) {
+  return Number.isFinite(value) && value >= 0 && value <= 1
+}
+
+function queuePriority(event: TraceEventV1) {
+  if (event.type === 'error') return 3
+  if (event.type === 'performance') return 2
+  if (event.type === 'resource') return 0
+  return 1
 }
 
 function installErrorCapture(client: TraceFlowClient, cleanups: Array<() => void>) {
@@ -513,5 +562,7 @@ export type {
   EventBatchV1,
   HttpEventV1,
   PageViewEventV1,
+  PerformanceEventV1,
+  ResourceEventV1,
   TraceEventV1,
 } from '@traceflow/shared'
