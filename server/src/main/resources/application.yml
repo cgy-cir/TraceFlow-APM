@@ -17,6 +17,12 @@ spring:
 server:
   port: ${TRACEFLOW_SERVER_PORT:18080}
 
+traceflow:
+  performance:
+    aggregation-enabled: ${TRACEFLOW_PERFORMANCE_AGGREGATION_ENABLED:true}
+    aggregation-delay-ms: ${TRACEFLOW_PERFORMANCE_AGGREGATION_DELAY_MS:10000}
+    aggregation-batch-size: ${TRACEFLOW_PERFORMANCE_AGGREGATION_BATCH_SIZE:1000}
+
 management:
   endpoints:
     web:

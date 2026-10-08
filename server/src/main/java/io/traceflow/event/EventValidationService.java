@@ -8,6 +8,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Clock;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -278,9 +279,9 @@ public class EventValidationService {
 
     private boolean validDimensions(TraceEventRequest event) {
         if (event.device() == null) return true;
-        return List.of(event.device().screenWidth(), event.device().screenHeight(),
-                        event.device().viewportWidth(), event.device().viewportHeight())
-                .stream().allMatch(value -> value == null || value >= 0 && value <= 20000);
+        return Arrays.stream(new Integer[]{event.device().screenWidth(), event.device().screenHeight(),
+                        event.device().viewportWidth(), event.device().viewportHeight()})
+                .allMatch(value -> value == null || value >= 0 && value <= 20000);
     }
 
     private boolean validBreadcrumbs(List<Map<String, Object>> breadcrumbs) {

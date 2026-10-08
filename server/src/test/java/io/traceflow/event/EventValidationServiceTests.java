@@ -1,6 +1,7 @@
 package io.traceflow.event;
 
 import io.traceflow.event.EventBatchRequest.PageContext;
+import io.traceflow.event.EventBatchRequest.DeviceContext;
 import io.traceflow.event.EventBatchRequest.TraceEventRequest;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -177,6 +178,21 @@ class EventValidationServiceTests {
         assertThat(performance.valid()).isFalse();
         assertThat(performance.message()).contains("breadcrumbs");
         assertThat(resource.valid()).isFalse();
+    }
+
+    @Test
+    void acceptsADeviceWithOnlySomeOptionalDimensions() {
+        TraceEventRequest base = event(
+                "5f23b358-0ad7-4f1a-9d94-17f728842502",
+                NOW.toEpochMilli(),
+                Map.of("mechanism", "manual", "name", "Error", "message", "checkout failed"));
+        TraceEventRequest partialDevice = new TraceEventRequest(
+                base.eventId(), base.type(), base.timestamp(), base.sessionId(), base.anonymousId(),
+                base.environment(), base.release(), base.traceId(), base.page(), base.user(),
+                new DeviceContext("Mozilla/5.0", "zh-CN", null, null, 1440, 900),
+                base.tags(), base.breadcrumbs(), base.payload());
+
+        assertThat(validationService.validate(partialDevice).valid()).isTrue();
     }
 
     private TraceEventRequest event(String eventId, long timestamp, Map<String, Object> payload) {
