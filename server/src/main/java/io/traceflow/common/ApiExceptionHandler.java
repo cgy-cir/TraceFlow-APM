@@ -2,6 +2,8 @@ package io.traceflow.common;
 
 import io.traceflow.event.EventApiException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -19,7 +21,8 @@ public class ApiExceptionHandler {
                 .body(error(exception.getCode(), exception.getMessage(), request));
     }
 
-    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentNotValidException.class})
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentNotValidException.class,
+            ConstraintViolationException.class, HandlerMethodValidationException.class})
     ResponseEntity<ApiError> handleBadRequest(Exception exception, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(error("INVALID_REQUEST", "request body is invalid", request));

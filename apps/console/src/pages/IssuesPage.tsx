@@ -42,7 +42,6 @@ export function IssuesPage() {
     sort: (searchParams.get('sort') as IssueFilters['sort']) || 'lastSeen',
   }
 
-  // React vs Vue: URLSearchParams 不是响应式对象；每次都创建新实例并交给 setter，路由才会更新。
   const updateFilter = (key: string, value?: string) => {
     const next = new URLSearchParams(searchParams)
     if (value) next.set(key, value)
@@ -57,6 +56,8 @@ export function IssuesPage() {
     queryFn: () => listIssues(Number(appId), filters, page),
     enabled: Number.isFinite(Number(appId)),
   })
+
+  console.log(issuesQuery.data, 'issuesQuery')
 
   return (
     <>

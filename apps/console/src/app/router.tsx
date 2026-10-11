@@ -7,20 +7,34 @@ import { NetworkPage } from '../pages/NetworkPage'
 import { OverviewPage } from '../pages/OverviewPage'
 import { PerformancePage } from '../pages/PerformancePage'
 import { SettingsPage } from '../pages/SettingsPage'
+import { LoginPage } from '../pages/LoginPage'
+import { UsersPage } from '../pages/UsersPage'
+import { AuthGate } from './AuthGate'
 
 export const router = createBrowserRouter([
-  { path: '/', element: <ApplicationEntryPage /> },
+  { path: '/login', element: <LoginPage /> },
   {
-    path: '/apps/:appId',
-    element: <AppLayout />,
+    element: <AuthGate />,
     children: [
-      { index: true, element: <Navigate to="overview" replace /> },
-      { path: 'overview', element: <OverviewPage /> },
-      { path: 'issues', element: <IssuesPage /> },
-      { path: 'issues/:issueId', element: <IssueDetailPage /> },
-      { path: 'network', element: <NetworkPage /> },
-      { path: 'performance', element: <PerformancePage /> },
-      { path: 'settings', element: <SettingsPage /> },
+      { path: '/', element: <ApplicationEntryPage /> },
+      {
+        path: '/apps/:appId',
+        element: <AppLayout />,
+        children: [
+          { index: true, element: <Navigate to="overview" replace /> },
+          { path: 'overview', element: <OverviewPage /> },
+          { path: 'issues', element: <IssuesPage /> },
+          { path: 'issues/:issueId', element: <IssueDetailPage /> },
+          { path: 'network', element: <NetworkPage /> },
+          { path: 'performance', element: <PerformancePage /> },
+          { path: 'settings', element: <SettingsPage /> },
+        ],
+      },
+      {
+        path: '/users',
+        element: <AppLayout />,
+        children: [{ index: true, element: <UsersPage /> }],
+      },
     ],
   },
 ])

@@ -9,7 +9,7 @@ import type { TrendSeries } from '../api/client'
 
 echarts.use([LineChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer])
 
-const colors = ['#176b5b', '#d97706', '#2563eb', '#b42318', '#7c3aed']
+const colors = ['#176b5b', '#d97706', '#2563eb', '#b42318', '#7c3aed', '#0891b2', '#be185d', '#475569']
 
 export function PerformanceTrendChart({ series }: { series: TrendSeries[] }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -22,7 +22,7 @@ export function PerformanceTrendChart({ series }: { series: TrendSeries[] }) {
     const observer = new ResizeObserver(() => chartRef.current?.resize())
     observer.observe(containerRef.current)
 
-    // React vs Vue: ECharts 实例放在 ref 中；effect cleanup 相当于 onUnmounted，避免路由切换后残留监听和 Canvas。
+
     return () => {
       observer.disconnect()
       chartRef.current?.dispose()
@@ -37,8 +37,8 @@ export function PerformanceTrendChart({ series }: { series: TrendSeries[] }) {
     chartRef.current.setOption({
       animationDuration: 240,
       color: colors,
-      grid: { left: 52, right: 22, top: 38, bottom: 42 },
-      legend: { top: 0, left: 0, itemWidth: 18, itemHeight: 3 },
+      grid: { left: 48, right: 44, top: 56, bottom: 32 },
+      legend: { type: 'scroll', top: 4, left: 0, right: 0, itemWidth: 18, itemHeight: 3, textStyle: { color: '#667085', fontSize: 12 } },
       tooltip: {
         trigger: 'axis',
         valueFormatter: (value: unknown) => value == null ? '无数据' : String(value),
@@ -51,6 +51,7 @@ export function PerformanceTrendChart({ series }: { series: TrendSeries[] }) {
       yAxis: units.map((unit, index) => ({
         type: 'value',
         name: unit,
+        nameTextStyle: { color: '#98a2b3', fontSize: 11 },
         position: index === 0 ? 'left' : 'right',
         axisLabel: { color: '#667085' },
         splitLine: { show: index === 0, lineStyle: { color: '#eaecf0' } },

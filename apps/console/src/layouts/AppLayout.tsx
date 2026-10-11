@@ -1,8 +1,17 @@
-import { BugOutlined, DashboardOutlined, FundProjectionScreenOutlined, GlobalOutlined, SettingOutlined } from '@ant-design/icons'
+import {
+  BugOutlined,
+  DashboardOutlined,
+  FundProjectionScreenOutlined,
+  GlobalOutlined,
+  SettingOutlined,
+  TeamOutlined,
+} from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { Layout, Menu, Select, Typography } from 'antd'
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { listApplications } from '../api/client'
+import { AccountMenu } from '../components/AccountMenu'
+import { useCurrentUser } from '../hooks/useCurrentUser'
 
 import '../App.css'
 
@@ -19,33 +28,65 @@ const items = [
 export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { appId = 'demo' } = useParams()
+  const { appId = '' } = useParams()
   const pathSegments = location.pathname.split('/')
-  const selectedKey = pathSegments[3] || 'overview'
-  const applicationsQuery = useQuery({ queryKey: ['applications'], queryFn: listApplications })
+  const selectedKey =
+    location.pathname === '/users' ? 'users' : pathSegments[3] || 'overview'
+  const applicationsQuery = useQuery({
+    queryKey: ['applications'],
+    queryFn: listApplications,
+  })
+  const { data: user } = useCurrentUser()
+  const navigationItems =
+    user?.role === 'admin'
+      ? [...items, { key: 'users', icon: <TeamOutlined />, label: '用户' }]
+      : items
+  const currentAppId = appId || applicationsQuery.data?.[0]?.id
 
   return (
     <Layout className="app-shell">
       <Sider className="app-sider" theme="light" width={220}>
-        <div className="brand"><span className="brand-mark">TF</span>TraceFlow</div>
+        <div className="brand">
+          <span className="brand-mark">TF</span>TraceFlow
+        </div>
         <Menu
-          items={items}
+          items={navigationItems}
+          style={
+            { '--nav-count': navigationItems.length } as React.CSSProperties
+          }
           mode="inline"
           selectedKeys={[selectedKey]}
-          onClick={({ key }) => navigate(`/apps/${appId}/${key}`)}
+          onClick={({ key }) =>
+            navigate(
+              key === 'users'
+                ? '/users'
+                : currentAppId
+                  ? `/apps/${currentAppId}/${key}`
+                  : '/',
+            )
+          }
         />
       </Sider>
       <Layout>
         <Header className="app-header">
-          <Select
-            aria-label="当前应用"
-            loading={applicationsQuery.isPending}
-            options={applicationsQuery.data?.map((application) => ({ label: application.name, value: application.id }))}
-            value={Number(appId)}
-            onChange={(nextAppId) => navigate(`/apps/${nextAppId}/${selectedKey}`)}
-            style={{ width: 200 }}
-          />
-          <Typography.Text type="secondary">M3 性能监控</Typography.Text>
+          {selectedKey === 'users' ? (
+            <Typography.Text strong>用户管理</Typography.Text>
+          ) : (
+            <Select
+              aria-label="当前应用"
+              loading={applicationsQuery.isPending}
+              options={applicationsQuery.data?.map((application) => ({
+                label: application.name,
+                value: application.id,
+              }))}
+              value={Number(appId)}
+              onChange={(nextAppId) =>
+                navigate(`/apps/${nextAppId}/${selectedKey}`)
+              }
+              style={{ width: 200 }}
+            />
+          )}
+          <AccountMenu />
         </Header>
         <Content className="app-content">
           <div className="content-wrap">

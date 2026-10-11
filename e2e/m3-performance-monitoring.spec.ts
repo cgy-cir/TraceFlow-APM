@@ -1,8 +1,5 @@
-import { expect, test, type APIRequestContext } from '@playwright/test'
-
-const apiBaseUrl = process.env.TRACEFLOW_API_BASE ?? 'http://localhost:18080/api/v1'
-const consoleBaseUrl = process.env.TRACEFLOW_CONSOLE_BASE ?? 'http://localhost:5173'
-const demoBaseUrl = process.env.TRACEFLOW_DEMO_BASE ?? 'http://localhost:5174'
+import { expect, type APIRequestContext } from '@playwright/test'
+import { test, apiBaseUrl, consoleBaseUrl, demoBaseUrl } from './auth-helpers'
 
 interface Application {
   id: number

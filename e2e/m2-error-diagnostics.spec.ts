@@ -1,6 +1,6 @@
-import { expect, test, type APIRequestContext } from '@playwright/test'
+import { expect, type APIRequestContext } from '@playwright/test'
+import { test, apiBaseUrl, consoleBaseUrl, demoBaseUrl, csrfHeaders } from './auth-helpers'
 
-const apiBaseUrl = 'http://localhost:18080/api/v1'
 const issueQuery = 'Demo checkout'
 
 interface Application {
@@ -33,7 +33,7 @@ test('Demo 错误可以聚合、诊断并在解决后回归', async ({ page, req
   await Promise.all(baselineIssues.map((issue) => ensureUnresolved(request, applicationId, issue)))
 
   const startedAt = Date.now()
-  await page.goto('http://localhost:5174')
+  await page.goto(demoBaseUrl)
   await page.getByRole('button', { name: /手动错误/ }).click()
   await page.getByRole('button', { name: /手动错误/ }).click()
   await page.getByRole('button', { name: /立即上报/ }).click()
@@ -41,7 +41,7 @@ test('Demo 错误可以聚合、诊断并在解决后回归', async ({ page, req
   const issue = await waitForAggregatedIssue(request, applicationId, baselineCounts, startedAt, 2)
   const expectedCount = (baselineCounts.get(issue.id) ?? 0) + 2
 
-  await page.goto(`http://localhost:5173/apps/${applicationId}/issues/${issue.id}`)
+  await page.goto(`${consoleBaseUrl}/apps/${applicationId}/issues/${issue.id}`)
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/Demo checkout \d+ failed/)
   await expect(page.locator('.ant-statistic').filter({ hasText: '事件总数' })
     .locator('.ant-statistic-content-value')).toHaveText(String(expectedCount))
@@ -55,7 +55,7 @@ test('Demo 错误可以聚合、诊断并在解决后回归', async ({ page, req
   await page.locator('.ant-select-dropdown:visible').getByText('已解决', { exact: true }).click()
   await expect.poll(async () => (await getIssue(request, applicationId, issue.id)).status).toBe('resolved')
 
-  await page.goto('http://localhost:5174')
+  await page.goto(demoBaseUrl)
   await page.getByRole('button', { name: /手动错误/ }).click()
   await page.getByRole('button', { name: /立即上报/ }).click()
 
@@ -64,9 +64,15 @@ test('Demo 错误可以聚合、诊断并在解决后回归', async ({ page, req
     return { status: current.status, eventCount: current.eventCount }
   }).toEqual({ status: 'regressed', eventCount: expectedCount + 1 })
 
-  await page.goto(`http://localhost:5173/apps/${applicationId}/issues/${issue.id}`)
+  await page.goto(`${consoleBaseUrl}/apps/${applicationId}/issues/${issue.id}`)
   await expect(page.getByText('已回归', { exact: true }).first()).toBeVisible()
-  await expect(page.locator('.event-rail .ant-list-item')).toHaveCount(Math.min(expectedCount + 1, 20))
+  const eventButtons = page.getByTestId('issue-event')
+  await expect(eventButtons).toHaveCount(Math.min(expectedCount + 1, 20))
+  await expect(eventButtons.first()).toHaveAttribute('aria-pressed', 'true')
+  const otherEventId = await eventButtons.nth(1).getAttribute('data-event-id')
+  await eventButtons.nth(1).press('Enter')
+  await expect(eventButtons.nth(1)).toHaveAttribute('aria-pressed', 'true')
+  await expect.poll(() => new URL(page.url()).searchParams.get('eventId')).toBe(otherEventId)
 })
 
 async function getDemoApplicationId(request: APIRequestContext) {
@@ -96,6 +102,7 @@ async function getIssue(request: APIRequestContext, applicationId: number, issue
 
 async function updateStatus(request: APIRequestContext, applicationId: number, issueId: number, status: string) {
   const response = await request.patch(`${apiBaseUrl}/issues/${issueId}/status`, {
+    headers: await csrfHeaders(request),
     data: { applicationId, status, reason: 'Playwright M2 验收准备' },
   })
   expect(response.ok()).toBeTruthy()

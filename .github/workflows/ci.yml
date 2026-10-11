@@ -64,7 +64,7 @@ jobs:
         run: ./mvnw --batch-mode --no-transfer-progress test
 
   e2e:
-    name: M2 and M3 end-to-end
+    name: Authentication, M2 and M3 end-to-end
     needs: [frontend, backend]
     runs-on: ubuntu-24.04
     timeout-minutes: 20

@@ -1,4 +1,4 @@
-import { Card, Skeleton, Tag } from 'antd'
+import { Skeleton, Tag } from 'antd'
 import type { MetricSummary } from '../api/client'
 import { formatMetric } from './performancePresentation'
 
@@ -20,25 +20,58 @@ const labels: Record<string, string> = {
   RESOURCE_TRANSFER_SIZE: '传输大小',
 }
 
-export function PerformanceMetricCard({ metric, loading = false }: { metric?: MetricSummary; loading?: boolean }) {
-  if (loading) return <Card size="small" className="performance-metric-card"><Skeleton active paragraph={false} /></Card>
-  const rating = metric && metric.p75 !== null ? ratingFor(metric.metric, metric.p75) : null
+export function PerformanceMetricCard({
+  metric,
+  loading = false,
+}: {
+  metric?: MetricSummary
+  loading?: boolean
+}) {
+  const rating =
+    metric && metric.p75 !== null ? ratingFor(metric.metric, metric.p75) : null
 
   return (
-    <Card size="small" className="performance-metric-card">
-      <div className="metric-card-heading">
-        <div><span>{metric ? labels[metric.metric] ?? metric.metric : '指标'}</span><strong>{metric?.metric ?? '--'}</strong></div>
-        {rating && <Tag color={rating.color}>{rating.label}</Tag>}
+    <article className="flex min-h-[186px] min-w-0 flex-col rounded-lg border border-[#e4e7ec] bg-white p-4 sm:p-5">
+      <div className="flex min-h-6 items-start justify-between gap-2">
+        <span className="text-sm font-medium text-[#344054]">
+          {metric ? (labels[metric.metric] ?? metric.metric) : '指标'}
+        </span>
+        {rating && !loading && (
+          <Tag variant="filled" color={rating.color}>
+            {rating.label}
+          </Tag>
+        )}
       </div>
-      <div className="metric-card-value">{formatMetric(metric?.p75, metric?.unit)}</div>
-      <div className="metric-card-meta"><span>P75 近似值</span><span>{metric?.sampleCount ?? 0} 个样本</span></div>
-    </Card>
+      {loading ? (
+        <Skeleton
+          active
+          title={false}
+          paragraph={{ rows: 1 }}
+          className="my-4"
+        />
+      ) : (
+        <div className="my-3 text-[26px] font-semibold leading-9 text-[#101828] tabular-nums sm:text-[30px]">
+          {formatMetric(metric?.p75, metric?.unit)}
+        </div>
+      )}
+      <span title={metric?.metric} className="mb-4 truncate text-[11px] text-[#98a2b3]">
+        {metric?.metric ?? '--'}
+      </span>
+      <div className="mt-auto flex flex-wrap justify-between gap-2 border-t border-[#f2f4f7] pt-3 text-xs text-[#667085]">
+        <span>P75 近似值</span>
+        <span>{metric?.sampleCount ?? 0} 个样本</span>
+      </div>
+    </article>
   )
 }
 
 function ratingFor(metric: string, value: number) {
   const thresholds: Record<string, [number, number]> = {
-    LCP: [2500, 4000], INP: [200, 500], CLS: [0.1, 0.25], FCP: [1800, 3000], TTFB: [800, 1800],
+    LCP: [2500, 4000],
+    INP: [200, 500],
+    CLS: [0.1, 0.25],
+    FCP: [1800, 3000],
+    TTFB: [800, 1800],
   }
   const threshold = thresholds[metric]
   if (!threshold) return null

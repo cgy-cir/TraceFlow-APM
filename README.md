@@ -30,6 +30,13 @@ npm run dev:demo
 
 Console runs on `http://localhost:5173`; Demo runs on `http://localhost:5174`.
 
+## Console styling
+
+The Console uses Ant Design for controls and Tailwind CSS v4 for layout, spacing, and typography.
+Tailwind is integrated through `@tailwindcss/vite`; its CSS entry is `apps/console/src/index.css`.
+The full Preflight reset is omitted to preserve Ant Design styles. Use complete, static utility class names
+in `className` so Tailwind can discover them. After changing Vite plugins, restart the Console dev server.
+
 ## Start MySQL and the API
 
 ```bash
@@ -39,6 +46,13 @@ cd server
 ```
 
 On Windows use `mvnw.cmd spring-boot:run`. The health endpoint is `http://localhost:18080/api/v1/health`.
+
+## Console login
+
+The development administrator is `local@traceflow.dev` with initial password `TraceFlow@2026`.
+Restart the API to apply the user migration and authentication configuration. Change the password from
+the account menu after signing in. Administrators can manage accounts at `/users`.
+See [用户登录与管理](docs/用户登录与管理.md) for roles, Session/CSRF behavior, and production bootstrap settings.
 
 ## Verify
 

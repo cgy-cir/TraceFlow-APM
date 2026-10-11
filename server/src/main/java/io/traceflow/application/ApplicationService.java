@@ -33,7 +33,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public ApplicationResponse create(CreateApplicationRequest request) {
+    public ApplicationResponse create(CreateApplicationRequest request, long ownerId) {
         ApplicationEntity entity = new ApplicationEntity();
         entity.setName(request.name().trim());
         entity.setAppKey("tf_app_" + UUID.randomUUID().toString().replace("-", ""));
@@ -41,7 +41,7 @@ public class ApplicationService {
         entity.setAllowedOrigins(objectMapper.writeValueAsString(request.allowedOrigins()));
         entity.setRetentionDays(request.retentionDays() == null ? 30 : request.retentionDays());
         entity.setStatus("active");
-        entity.setCreatedBy(DevDataInitializer.DEV_USER_ID);
+        entity.setCreatedBy(ownerId);
         long now = System.currentTimeMillis();
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);

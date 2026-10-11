@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import io.traceflow.user.AccountPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/v1/applications")
@@ -33,8 +35,8 @@ public class ApplicationApi {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ApplicationResponse create(@Valid @RequestBody CreateApplicationRequest request) {
-        return applicationService.create(request);
+    public ApplicationResponse create(@AuthenticationPrincipal AccountPrincipal principal, @Valid @RequestBody CreateApplicationRequest request) {
+        return applicationService.create(request, principal.id());
     }
 
     public record CreateApplicationRequest(

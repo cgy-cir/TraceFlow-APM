@@ -1,6 +1,6 @@
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, Button, Descriptions, Empty, List, Select, Skeleton, Space, Statistic, Tag, Timeline, Typography } from 'antd'
+import { Alert, Button, Descriptions, Empty, Listy, Select, Skeleton, Space, Statistic, Tag, Timeline, Typography } from 'antd'
 import { useEffect } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
@@ -49,7 +49,6 @@ export function IssueDetailPage() {
     enabled: selectedEventId !== undefined,
   })
 
-  // React vs Vue: 这里的 effect 只负责把默认事件同步进 URL，不用它计算 selectedEventId。
   useEffect(() => {
     if (!selectedFromUrl && selectedEventId) {
       const next = new URLSearchParams(searchParams)
@@ -114,13 +113,21 @@ export function IssueDetailPage() {
       <div className="detail-grid">
         <aside className="event-rail">
           <h2>同类事件</h2>
-          <List
-            loading={eventsQuery.isPending}
-            dataSource={eventsQuery.data?.items}
-            locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无事件" /> }}
-            renderItem={(item) => (
-              <List.Item
-                className={item.id === selectedEventId ? 'selected-event' : ''}
+          {eventsQuery.isPending ? <Skeleton active title={false} paragraph={{ rows: 3 }} /> : eventsQuery.isError ? (
+            <Alert type="error" showIcon title="事件列表加载失败" />
+          ) : !eventsQuery.data?.items.length ? (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无事件" />
+          ) : <Listy
+            items={eventsQuery.data.items}
+            rowKey="id"
+            styles={{ item: { padding: 0 } }}
+            itemRender={(item) => (
+              <button
+                type="button"
+                data-testid="issue-event"
+                data-event-id={item.id}
+                aria-pressed={item.id === selectedEventId}
+                className={`event-selection-button ${item.id === selectedEventId ? 'selected-event' : ''}`}
                 onClick={() => {
                   const next = new URLSearchParams(searchParams)
                   next.set('eventId', String(item.id))
@@ -128,9 +135,9 @@ export function IssueDetailPage() {
                 }}
               >
                 <div><strong>{formatDateTime(item.occurredAt)}</strong><span>{item.environment} · {item.releaseName || '无版本'}</span></div>
-              </List.Item>
+              </button>
             )}
-          />
+          />}
         </aside>
 
         <div className="diagnostic-content">
@@ -165,7 +172,7 @@ export function IssueDetailPage() {
           <section className="detail-section">
             <h2>状态记录</h2>
             <Timeline items={issue.statusHistory.map((item) => ({
-              children: <div><strong>{statusLabels[item.toStatus]}</strong><span>{formatDateTime(item.changedAt)}{item.reason ? ` · ${item.reason}` : ''}</span></div>,
+              content: <div><strong>{statusLabels[item.toStatus]}</strong><span>{formatDateTime(item.changedAt)}{item.reason ? ` · ${item.reason}` : ''}</span></div>,
             }))} />
           </section>
         </div>
@@ -178,7 +185,7 @@ function BreadcrumbTimeline({ breadcrumbs }: { breadcrumbs: Breadcrumb[] }) {
   if (breadcrumbs.length === 0) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="该事件没有面包屑" />
   return <Timeline items={breadcrumbs.map((breadcrumb) => ({
     color: breadcrumb.level === 'error' ? 'red' : breadcrumb.level === 'warning' ? 'orange' : 'blue',
-    children: (
+    content: (
       <div className="breadcrumb-item">
         <strong>{breadcrumb.message || breadcrumb.category}</strong>
         <span>{formatDateTime(breadcrumb.timestamp)} · {breadcrumb.category}</span>
