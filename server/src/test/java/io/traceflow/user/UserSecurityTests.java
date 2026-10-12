@@ -31,6 +31,24 @@ class UserSecurityTests {
     @Test void anonymousCannotReadUsers() throws Exception {
         mvc.perform(get("/api/v1/users")).andExpect(status().isUnauthorized());
     }
+    @Test void publicDemoChecksAllowCrossOriginReadsWithoutCredentials() throws Exception {
+        for (String path : java.util.List.of("/api/v1/health", "/api/v1/missing")) {
+            // No public controller in this slice: 404 proves CORS and security passed.
+            mvc.perform(get(path).header("Origin", "https://demo.revengedog.online"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(header().string("Access-Control-Allow-Origin", "*"))
+                    .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
+            mvc.perform(post(path).header("Origin", "https://demo.revengedog.online"))
+                    .andExpect(status().isForbidden());
+        }
+    }
+    @Test void demoOriginStillCannotReadManagementApis() throws Exception {
+        for (String path : java.util.List.of("/api/v1/users", "/api/v1/applications")) {
+            mvc.perform(get(path).header("Origin", "https://demo.revengedog.online"))
+                    .andExpect(status().isForbidden())
+                    .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+        }
+    }
     @Test void memberCannotReadUsers() throws Exception {
         mvc.perform(get("/api/v1/users").with(user("member").roles("MEMBER"))).andExpect(status().isForbidden());
     }

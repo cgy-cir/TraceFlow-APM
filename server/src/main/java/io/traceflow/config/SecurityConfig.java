@@ -83,8 +83,13 @@ public class SecurityConfig {
         management.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
         management.setAllowedHeaders(List.of("Content-Type", "X-CSRF-TOKEN"));
         management.setAllowCredentials(true);
+        CorsConfiguration publicChecks = new CorsConfiguration();
+        publicChecks.setAllowedOrigins(List.of("*"));
+        publicChecks.setAllowedMethods(List.of("GET", "OPTIONS"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/v1/events/batch", ingestion);
+        source.registerCorsConfiguration("/api/v1/health", publicChecks);
+        source.registerCorsConfiguration("/api/v1/missing", publicChecks);
         source.registerCorsConfiguration("/api/**", management);
         return source;
     }
