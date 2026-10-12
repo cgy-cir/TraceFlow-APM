@@ -1,9 +1,24 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { ensureDemoApplication } from './production-demo.mjs'
+import { ensureDemoApplication, waitForDemoReady } from './production-demo.mjs'
 import { withUploadSession } from './upload-source-maps.mjs'
 
 const origin = 'https://demo.revengedog.online'
+
+test('monitoring page readiness waits for rendered UI, not global network idle', async () => {
+  const calls = []
+  const page = {
+    goto: async (url, options) => { calls.push({ url, options }) },
+    getByRole: (role, options) => {
+      assert.equal(role, 'heading')
+      assert.equal(options.name, '监控事件实验台')
+      return { waitFor: async (options) => assert.equal(options.state, 'visible') }
+    },
+  }
+  await waitForDemoReady(page, origin)
+  assert.equal(calls[0].url, origin)
+  assert.equal(calls[0].options.waitUntil, 'domcontentloaded')
+})
 const application = {
   id: 7,
   name: 'Demo Web',

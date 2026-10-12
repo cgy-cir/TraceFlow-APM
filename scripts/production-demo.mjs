@@ -156,6 +156,12 @@ export async function runDemoStep(step, env = process.env) {
   } else throw new Error('Unknown Demo deployment step')
 }
 
+export async function waitForDemoReady(page, origin) {
+  await page.goto(origin, { waitUntil: 'domcontentloaded', timeout: 60000 })
+  await page.getByRole('heading', { name: '监控事件实验台', exact: true })
+    .waitFor({ state: 'visible', timeout: 30000 })
+}
+
 async function smokeDemo(info, env) {
   const { chromium } = await import('@playwright/test')
   const browser = await chromium.launch({
@@ -163,7 +169,7 @@ async function smokeDemo(info, env) {
   })
   try {
     const page = await browser.newPage()
-    await page.goto(info.origin, { waitUntil: 'networkidle', timeout: 60000 })
+    await waitForDemoReady(page, info.origin)
     const health = await page.evaluate(async (url) => {
       const response = await fetch(url)
       return response.status
