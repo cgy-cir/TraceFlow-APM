@@ -5,6 +5,7 @@ import {
   GlobalOutlined,
   SettingOutlined,
   TeamOutlined,
+  TagsOutlined,
 } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { Layout, Menu, Select, Typography } from 'antd'
@@ -22,6 +23,7 @@ const items = [
   { key: 'issues', icon: <BugOutlined />, label: '错误' },
   { key: 'network', icon: <GlobalOutlined />, label: '请求' },
   { key: 'performance', icon: <FundProjectionScreenOutlined />, label: '性能' },
+  { key: 'releases', icon: <TagsOutlined />, label: '版本' },
   { key: 'settings', icon: <SettingOutlined />, label: '设置' },
 ]
 

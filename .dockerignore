@@ -1,0 +1,11 @@
+**
+!server/
+!server/target/
+!server/target/*.jar
+!apps/
+!apps/console/
+!apps/console/dist/
+!apps/console/dist/**
+!deploy/
+!deploy/*.Dockerfile
+!deploy/Caddyfile

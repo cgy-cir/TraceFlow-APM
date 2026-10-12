@@ -1,0 +1,8 @@
+# Local/CI only: independent project and volumes, loopback ports, local certificates.
+services:
+  web:
+    ports: !override
+      - '127.0.0.1::443'
+    volumes: !override
+      - caddy_data:/data
+      - caddy_config:/config

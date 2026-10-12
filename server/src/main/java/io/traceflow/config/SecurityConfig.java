@@ -39,6 +39,9 @@ public class SecurityConfig {
                                 "/api/v1/events/batch", "/api/v1/health", "/api/v1/missing", "/actuator/health", "/error").permitAll()
                         .requestMatchers("/api/v1/users", "/api/v1/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/applications").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/releases", "/api/v1/releases/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/releases/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/releases/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, exception) -> {
@@ -77,7 +80,7 @@ public class SecurityConfig {
 
         CorsConfiguration management = new CorsConfiguration();
         management.setAllowedOrigins(java.util.Arrays.stream(consoleOrigins.split(",")).map(String::trim).filter(origin -> !origin.isBlank()).toList());
-        management.setAllowedMethods(List.of("GET", "POST", "PATCH", "OPTIONS"));
+        management.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
         management.setAllowedHeaders(List.of("Content-Type", "X-CSRF-TOKEN"));
         management.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

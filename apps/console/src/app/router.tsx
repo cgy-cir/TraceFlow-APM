@@ -9,6 +9,8 @@ import { PerformancePage } from '../pages/PerformancePage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { LoginPage } from '../pages/LoginPage'
 import { UsersPage } from '../pages/UsersPage'
+import { ReleasesPage } from '../pages/ReleasesPage'
+import { ReleaseDetailPage } from '../pages/ReleaseDetailPage'
 import { AuthGate } from './AuthGate'
 
 export const router = createBrowserRouter([
@@ -27,6 +29,8 @@ export const router = createBrowserRouter([
           { path: 'issues/:issueId', element: <IssueDetailPage /> },
           { path: 'network', element: <NetworkPage /> },
           { path: 'performance', element: <PerformancePage /> },
+          { path: 'releases', element: <ReleasesPage /> },
+          { path: 'releases/:releaseId', element: <ReleaseDetailPage /> },
           { path: 'settings', element: <SettingsPage /> },
         ],
       },

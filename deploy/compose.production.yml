@@ -1,0 +1,88 @@
+services:
+  mysql:
+    image: mysql:8.4@sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d
+    restart: unless-stopped
+    mem_limit: 600m
+    cpus: 0.7
+    command:
+      - --innodb-buffer-pool-size=134217728
+      - --max-connections=40
+      - --performance-schema=OFF
+    environment:
+      MYSQL_DATABASE: traceflow
+      MYSQL_USER: traceflow
+      MYSQL_PASSWORD: ${TRACEFLOW_DB_PASSWORD:?Set production database password}
+      MYSQL_ROOT_PASSWORD: ${TRACEFLOW_MYSQL_ROOT_PASSWORD:?Set production root password}
+      TZ: UTC
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks: [database]
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysqladmin ping -h 127.0.0.1 -uroot --silent',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+  server:
+    image: ${SERVER_IMAGE:?Set immutable server image reference}
+    restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.0
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TRACEFLOW_DB_URL: jdbc:mysql://mysql:3306/traceflow?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&connectionTimeZone=UTC
+      TRACEFLOW_DB_USERNAME: traceflow
+      TRACEFLOW_DB_PASSWORD: ${TRACEFLOW_DB_PASSWORD:?Set production database password}
+      TRACEFLOW_SERVER_PORT: '18080'
+      TRACEFLOW_SECURE_COOKIE: 'true'
+      TRACEFLOW_CONSOLE_ORIGINS: https://${APM_HOST:?Set Console hostname}
+      TRACEFLOW_BOOTSTRAP_ADMIN_EMAIL: ${TRACEFLOW_BOOTSTRAP_ADMIN_EMAIL:-}
+      TRACEFLOW_BOOTSTRAP_ADMIN_PASSWORD: ${TRACEFLOW_BOOTSTRAP_ADMIN_PASSWORD:-}
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx384m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=64m -XX:+ExitOnOutOfMemoryError
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks: [database, edge]
+    logging: *logging
+
+  web:
+    image: ${WEB_IMAGE:?Set immutable web image reference}
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.3
+    environment:
+      APM_HOST: ${APM_HOST:?Set Console hostname}
+      DEMO_HOST: ${DEMO_HOST:?Set Demo hostname}
+      ACME_EMAIL: ${ACME_EMAIL:?Set certificate notification email}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - /opt/traceflow/demo:/srv/demo:ro
+    depends_on:
+      server:
+        condition: service_healthy
+    networks: [edge]
+    logging: *logging
+
+networks:
+  database:
+    internal: true
+  edge:
+
+volumes:
+  mysql_data:
+  caddy_data:
+  caddy_config:

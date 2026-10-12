@@ -1,5 +1,7 @@
 node_modules/
 dist/
+dist-private/
+dist-public*/
 target/
 .idea/
 .vscode/
@@ -7,6 +9,11 @@ target/
 *.log
 .env
 .env.local
+.env.production
+deploy/.env.*.local
+*.pem
+*.key
+deploy/backups/
 coverage/
 playwright-report/
 test-results/

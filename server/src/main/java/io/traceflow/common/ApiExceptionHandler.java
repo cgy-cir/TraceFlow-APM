@@ -28,6 +28,16 @@ public class ApiExceptionHandler {
                 .body(error("INVALID_REQUEST", "request body is invalid", request));
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiError> handleUploadSize(Exception exception, HttpServletRequest request) {
+        return ResponseEntity.status(413).body(error("UPLOAD_TOO_LARGE", "单文件最多 5 MiB，总请求最多 11 MiB", request));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.support.MissingServletRequestPartException.class)
+    ResponseEntity<ApiError> handleMissingPart(Exception exception, HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(error("INVALID_REQUEST", "需要同时选择 JS 和 Source Map 文件", request));
+    }
+
     private ApiError error(String code, String message, HttpServletRequest request) {
         String requestId = request.getHeader("X-Request-Id");
         return new ApiError(code, message, requestId == null ? UUID.randomUUID().toString() : requestId);

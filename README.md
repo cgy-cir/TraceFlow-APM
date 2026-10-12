@@ -54,6 +54,33 @@ Restart the API to apply the user migration and authentication configuration. Ch
 the account menu after signing in. Administrators can manage accounts at `/users`.
 See [用户登录与管理](docs/用户登录与管理.md) for roles, Session/CSRF behavior, and production bootstrap settings.
 
+## Release management and source resolution (M4)
+
+The application navigation now includes Releases at `/apps/:appId/releases`. Administrators can create
+an immutable release manifest with full JS paths and JS/Map SHA-256 checksums; members can read lists and
+details. Identical creates return the existing release; changed manifests return a conflict. Names are
+case-sensitive within an application. Restart the API to load the new endpoints; Flyway applies V7.
+
+Release details support paired JS/Map uploads, draft artifact deletion, and immutable finalization.
+Use `npm run build:demo:release`, `npm run upload:source-maps`, and `npm run prepare:public` for the same-build
+upload and private-map publishing workflow. Error details now resolve matching sealed releases to original
+source positions and limited code context, while preserving raw stacks. After publishing the public assets,
+administrators can register the immutable first deployment time separately from finalization. All API times
+are Unix milliseconds. See [验收与演示](docs/M4验收与演示.md), [源码定位与诊断](docs/M4源码定位与诊断.md), [构建产物上传与发布](docs/M4构建产物上传与发布.md),
+[M4 版本与源码定位设计](docs/M4版本与源码定位设计.md), and [数据库迁移 v7](docs/数据库迁移-v7.md).
+The MySQL integration tests are opt-in with `TRACEFLOW_RUN_DB_TESTS=true`; CI runs them against MySQL 8.4.
+
+## Production deployment (M6.1)
+
+The initial target is a Hong Kong Ubuntu 22.04 amd64 host with 2 cores and 2 GiB RAM.
+Production runs MySQL, a non-root Java container, and a Caddy HTTPS/static gateway. The new
+`Deploy platform` workflow is manual and requires an exact main commit with successful CI;
+images are built on GitHub runners and deployed by digest over verified SSH. Push alone never deploys.
+Production credentials stay in the server environment file and GitHub Environment secrets.
+See [首次上线与手动发布](docs/M6首次上线与手动发布.md) and [部署与发布设计](docs/M6部署与发布设计.md).
+The first release is Console/API only; create the production application before publishing Demo.
+Remote deployment, certificate issuance, backup restore, and rollback still require real acceptance.
+
 ## Verify
 
 ```bash

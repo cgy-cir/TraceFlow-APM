@@ -6,10 +6,10 @@ const endpoint = import.meta.env.VITE_TRACEFLOW_ENDPOINT ?? 'http://localhost:18
 const apiOrigin = new URL(endpoint).origin
 
 const traceFlow = init({
-  appKey: 'tf_app_demo_web',
+  appKey: import.meta.env.VITE_TRACEFLOW_APP_KEY ?? 'tf_app_demo_web',
   endpoint,
-  environment: 'development',
-  release: 'demo-web@0.1.0',
+  environment: import.meta.env.VITE_TRACEFLOW_ENVIRONMENT ?? 'development',
+  release: import.meta.env.VITE_TRACEFLOW_RELEASE ?? 'demo-web@0.1.0',
   resourceSampleRate: 1,
 })
 

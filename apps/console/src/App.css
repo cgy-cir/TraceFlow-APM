@@ -59,6 +59,10 @@
 .diagnostic-content { min-width: 0; }
 .detail-section { border-bottom: 1px solid #e5e7eb; margin-bottom: 24px; padding-bottom: 24px; }
 .stack-trace { background: #171a1f; color: #e5e7eb; font: 13px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; margin: 0; max-height: 360px; overflow: auto; padding: 16px; white-space: pre-wrap; }
+.source-context { background: #171a1f; color: #e5e7eb; font: 12px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace; margin: 0; max-width: 100%; overflow: auto; padding: 10px 0; }
+.source-context-line { display: grid; grid-template-columns: 44px minmax(0, 1fr); min-width: max-content; padding-right: 14px; }
+.source-context-number { color: #98a2b3; padding-right: 12px; text-align: right; user-select: none; }
+.source-context-error { background: #254c40; }
 .breadcrumb-item { display: flex; flex-direction: column; gap: 3px; }
 .breadcrumb-item span, .detail-section .ant-timeline-item-content span { color: #667085; display: block; font-size: 12px; }
 .breadcrumb-item code { background: #f3f4f6; overflow-wrap: anywhere; padding: 4px 6px; width: fit-content; }

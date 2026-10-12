@@ -12,6 +12,7 @@ import {
   type IssueStatus,
 } from '../api/client'
 import { formatDateTime, statusLabels } from './issuePresentation'
+import { EventStacktrace } from '../components/EventStacktrace'
 
 const statusTransitions: Record<IssueStatus, IssueStatus[]> = {
   unresolved: ['resolving', 'resolved', 'ignored'],
@@ -75,7 +76,6 @@ export function IssueDetailPage() {
 
   const issue = issueQuery.data
   const event = eventQuery.data
-  const stack = typeof event?.payload.stack === 'string' ? event.payload.stack : ''
   const device = asRecord(asRecord(event?.context).device)
 
   return (
@@ -145,10 +145,8 @@ export function IssueDetailPage() {
             <Alert type="error" showIcon title="事件详情加载失败" />
           ) : (
             <>
-              <section className="detail-section">
-                <h2>调用栈</h2>
-                {stack ? <pre className="stack-trace">{stack}</pre> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="该事件没有调用栈" />}
-              </section>
+              {/* React vs Vue: key 随事件变化会重新挂载定位面板，重置展开项与视图；不会沿用上一条事件的局部状态。 */}
+              <EventStacktrace key={`${applicationId}:${event.id}`} applicationId={applicationId} event={event} />
               <section className="detail-section">
                 <h2>发生前的面包屑</h2>
                 <BreadcrumbTimeline breadcrumbs={event.breadcrumbs ?? []} />

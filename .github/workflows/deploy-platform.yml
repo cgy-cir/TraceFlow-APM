@@ -1,0 +1,164 @@
+name: Deploy platform
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Full 40-character main commit SHA with successful CI
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    outputs:
+      commit: ${{ steps.verify.outputs.commit }}
+    steps:
+      - name: Verify main ancestry and successful CI for the exact commit
+        id: verify
+        uses: actions/github-script@v7
+        env:
+          REQUESTED_COMMIT: ${{ inputs.commit }}
+        with:
+          script: |
+            if (context.ref !== 'refs/heads/main') throw new Error('Run this workflow from main');
+            const sha = process.env.REQUESTED_COMMIT;
+            if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error('A full lowercase commit SHA is required');
+            const comparison = await github.rest.repos.compareCommits({ ...context.repo, base: sha, head: 'main' });
+            if (!['ahead', 'identical'].includes(comparison.data.status)) throw new Error('Commit is not on main');
+            const runs = await github.rest.actions.listWorkflowRuns({ ...context.repo, workflow_id: 'ci.yml', head_sha: sha, branch: 'main', event: 'push', per_page: 100 });
+            const run = runs.data.workflow_runs.filter(item => item.head_sha === sha).sort((a, b) => b.id - a.id)[0];
+            if (!run || run.status !== 'completed' || run.conclusion !== 'success') throw new Error('The latest push CI for this commit must succeed first');
+            core.setOutput('commit', sha);
+
+  build:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      server_image: ${{ steps.references.outputs.server_image }}
+      web_image: ${{ steps.references.outputs.web_image }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.verify.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+          cache-dependency-path: server/pom.xml
+      - run: npm ci
+      - run: npm run build -w @traceflow/shared && npm run build -w @traceflow/console
+      - name: Package tested backend
+        working-directory: server
+        run: ./mvnw --batch-mode --no-transfer-progress -DskipTests package
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image names
+        id: names
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          echo "server=ghcr.io/${REPO,,}/server" >> "$GITHUB_OUTPUT"
+          echo "web=ghcr.io/${REPO,,}/web" >> "$GITHUB_OUTPUT"
+      - name: Build and publish backend
+        id: server
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/server.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.names.outputs.server }}:${{ needs.verify.outputs.commit }}-${{ github.run_id }}-${{ github.run_attempt }}
+          labels: |
+            org.opencontainers.image.revision=${{ needs.verify.outputs.commit }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+      - name: Build and publish Console/HTTPS gateway
+        id: web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/web.Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: RELEASE_SHA=${{ needs.verify.outputs.commit }}
+          tags: ${{ steps.names.outputs.web }}:${{ needs.verify.outputs.commit }}-${{ github.run_id }}-${{ github.run_attempt }}
+          labels: |
+            org.opencontainers.image.revision=${{ needs.verify.outputs.commit }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+      - name: Pin deployment digests
+        id: references
+        run: |
+          echo 'server_image=${{ steps.names.outputs.server }}@${{ steps.server.outputs.digest }}' >> "$GITHUB_OUTPUT"
+          echo 'web_image=${{ steps.names.outputs.web }}@${{ steps.web.outputs.digest }}' >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: platform-deployment
+          path: |
+            deploy/compose.production.yml
+            deploy/deploy-platform.sh
+          retention-days: 7
+
+  deploy:
+    needs: [verify, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    environment:
+      name: production
+      url: https://apm.revengedog.online
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: platform-deployment
+          path: deployment
+      - name: Configure SSH and deploy the selected candidate
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+          COMMIT: ${{ needs.verify.outputs.commit }}
+          SERVER_IMAGE: ${{ needs.build.outputs.server_image }}
+          WEB_IMAGE: ${{ needs.build.outputs.web_image }}
+        run: |
+          set -Eeuo pipefail
+          [[ $SSH_HOST =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ && $SSH_USER =~ ^[a-zA-Z0-9_][a-zA-Z0-9_-]*$ && $SSH_PORT =~ ^[0-9]{1,5}$ ]] || { echo 'Invalid SSH configuration'; exit 1; }
+          (( 10#$SSH_PORT >= 1 && 10#$SSH_PORT <= 65535 )) || { echo 'Invalid SSH port'; exit 1; }
+          [[ -n $SSH_PRIVATE_KEY && -n $SSH_KNOWN_HOSTS ]] || { echo 'SSH secrets are required'; exit 1; }
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+          remote="/opt/traceflow/releases/$COMMIT-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          ssh_args=(-i ~/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15)
+          ssh "${ssh_args[@]}" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "umask 077; mkdir -p '$remote'"
+          scp "${ssh_args[@]}" -P "$SSH_PORT" deployment/compose.production.yml deployment/deploy-platform.sh "$SSH_USER@$SSH_HOST:$remote/"
+          printf '%s' "$REGISTRY_TOKEN" | ssh "${ssh_args[@]}" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "bash '$remote/deploy-platform.sh' '$REGISTRY_USER' '$SERVER_IMAGE' '$WEB_IMAGE'"

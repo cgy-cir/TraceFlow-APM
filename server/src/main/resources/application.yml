@@ -3,6 +3,10 @@ spring:
     name: traceflow-server
   profiles:
     default: dev
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 11MB
   datasource:
     url: ${TRACEFLOW_DB_URL:jdbc:mysql://localhost:3307/traceflow?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&connectionTimeZone=UTC}
     username: ${TRACEFLOW_DB_USERNAME:traceflow}

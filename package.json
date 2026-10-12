@@ -9,8 +9,12 @@
   "scripts": {
     "dev:console": "npm run dev -w @traceflow/console",
     "dev:demo": "npm run dev -w @traceflow/demo",
+    "build:demo:release": "node scripts/build-demo-release.mjs",
+    "upload:source-maps": "node scripts/upload-source-maps.mjs",
+    "prepare:public": "node scripts/prepare-public-assets.mjs",
+    "test:release-scripts": "node --test scripts/release-artifacts.test.mjs",
     "build": "npm run build -w @traceflow/shared && npm run build -w @traceflow/web-sdk && npm run build -w @traceflow/console && npm run build -w @traceflow/demo",
-    "test": "npm run build -w @traceflow/shared && npm run test -w @traceflow/web-sdk",
+    "test": "npm run build -w @traceflow/shared && npm run test -w @traceflow/web-sdk && npm run test:release-scripts",
     "pretest:e2e": "npm run build -w @traceflow/shared && npm run build -w @traceflow/web-sdk",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -21,6 +25,7 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
+    "@jridgewell/trace-mapping": "^0.3.31",
     "@playwright/test": "^1.63.0"
   }
 }

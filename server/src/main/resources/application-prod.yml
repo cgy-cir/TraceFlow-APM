@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 10000
+server:
+  forward-headers-strategy: native
+  tomcat:
+    threads:
+      max: 30
+      min-spare: 3
+    max-connections: 200
+    accept-count: 50
