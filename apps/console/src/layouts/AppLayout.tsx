@@ -6,12 +6,15 @@ import {
   SettingOutlined,
   TeamOutlined,
   TagsOutlined,
+  PlusOutlined,
 } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
-import { Layout, Menu, Select, Typography } from 'antd'
+import { Button, Layout, Menu, Select, Tooltip, Typography } from 'antd'
+import { useState } from 'react'
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { listApplications } from '../api/client'
 import { AccountMenu } from '../components/AccountMenu'
+import { CreateApplicationModal } from '../components/CreateApplicationModal'
 import { useCurrentUser } from '../hooks/useCurrentUser'
 
 import '../App.css'
@@ -39,6 +42,7 @@ export function AppLayout() {
     queryFn: listApplications,
   })
   const { data: user } = useCurrentUser()
+  const [createOpen, setCreateOpen] = useState(false)
   const navigationItems =
     user?.role === 'admin'
       ? [...items, { key: 'users', icon: <TeamOutlined />, label: '用户' }]
@@ -74,19 +78,22 @@ export function AppLayout() {
           {selectedKey === 'users' ? (
             <Typography.Text strong>用户管理</Typography.Text>
           ) : (
-            <Select
+            <div className="application-selector"><Select
               aria-label="当前应用"
               loading={applicationsQuery.isPending}
               options={applicationsQuery.data?.map((application) => ({
                 label: application.name,
                 value: application.id,
               }))}
-              value={Number(appId)}
+              value={appId ? Number(appId) : undefined}
               onChange={(nextAppId) =>
                 navigate(`/apps/${nextAppId}/${selectedKey}`)
               }
-              style={{ width: 200 }}
+              style={{ width: 200, maxWidth: '100%' }}
             />
+            {user?.role === 'admin' && <Tooltip title="创建应用">
+              <Button aria-label="创建应用" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} />
+            </Tooltip>}</div>
           )}
           <AccountMenu />
         </Header>
@@ -97,6 +104,10 @@ export function AppLayout() {
           </div>
         </Content>
       </Layout>
+      {createOpen && <CreateApplicationModal onClose={() => setCreateOpen(false)} onCreated={(application) => {
+        setCreateOpen(false)
+        navigate(`/apps/${application.id}/settings`)
+      }} />}
     </Layout>
   )
 }

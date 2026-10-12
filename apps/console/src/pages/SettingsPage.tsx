@@ -13,7 +13,8 @@ export function SettingsPage() {
 
   const items = [
     { key: 'name', label: '应用名称', children: application.name },
-    { key: 'appKey', label: 'App Key', children: <code>{application.appKey}</code> },
+    { key: 'id', label: '应用 ID', children: application.id },
+    { key: 'appKey', label: 'App Key', children: <code className="break-all">{application.appKey}</code> },
     { key: 'platform', label: '平台', children: application.platform },
     { key: 'origins', label: '允许的 Origin', children: application.allowedOrigins.map((origin) => <Tag key={origin}>{origin}</Tag>) },
     { key: 'retention', label: '数据保留', children: `${application.retentionDays} 天` },

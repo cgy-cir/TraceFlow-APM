@@ -35,6 +35,12 @@
 .dashboard-filters > .ant-input-affix-wrapper, .dashboard-filters > .ant-select { min-width: 0; width: 100%; }
 .status-row { align-items: center; display: flex; gap: 8px; }
 .entry-state { align-items: center; display: flex; justify-content: center; min-height: 100vh; padding: 24px; }
+.application-entry { min-height: 100vh; background: #f7f8fa; }
+.application-entry-header { display: flex; align-items: center; justify-content: space-between; padding-right: 20px; background: #fff; border-bottom: 1px solid #e8eaed; }
+.application-entry-content { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+.application-entry-empty { border-block: 1px solid #e8eaed; padding: 64px 16px; }
+.application-selector { display: flex; align-items: center; gap: 8px; min-width: 0; margin-right: 12px; }
+.application-selector .ant-select { min-width: 0; }
 .table-toolbar { align-items: center; display: flex; justify-content: space-between; margin-bottom: 16px; }
 .primary-cell { display: flex; flex-direction: column; gap: 3px; min-width: 240px; }
 .primary-cell span { color: #667085; font-size: 12px; }

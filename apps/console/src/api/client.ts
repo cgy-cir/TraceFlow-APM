@@ -223,6 +223,15 @@ export async function listApplications() {
   return (await axios.get<{ items: Application[]; total: number }>('/api/v1/applications')).data.items
 }
 
+export interface CreateApplicationInput {
+  name: string
+  allowedOrigins: string[]
+}
+
+export async function createApplication(input: CreateApplicationInput) {
+  return (await axios.post<Application>('/api/v1/applications', input)).data
+}
+
 export async function listIssues(applicationId: number, filters: IssueFilters, page: number) {
   return (
     await axios.get<PagedResponse<Issue>>('/api/v1/issues', {

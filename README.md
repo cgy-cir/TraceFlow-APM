@@ -78,6 +78,8 @@ Production runs MySQL, a non-root Java container, and a Caddy HTTPS/static gatew
 images are built on GitHub runners and deployed by digest over verified SSH. Push alone never deploys.
 Production credentials stay in the server environment file and GitHub Environment secrets.
 See [首次上线与手动发布](docs/M6首次上线与手动发布.md) and [部署与发布设计](docs/M6部署与发布设计.md).
+
+Production Demo publishing: [生产 Demo 发布](docs/M6生产Demo发布.md). The manual Deploy Demo workflow configures the real application, uploads private Source Maps, atomically publishes public files and verifies real browser reporting.
 The first release is Console/API only; create the production application before publishing Demo.
 Remote deployment, certificate issuance, backup restore, and rollback still require real acceptance.
 
