@@ -9,6 +9,14 @@ for command in jq curl flock sha256sum cmp; do command -v "$command" >/dev/null;
 exec 9>"$root/deploy.lock"
 flock -w 5 9 || { echo 'Another deployment is active' >&2; exit 1; }
 [[ ! -e $candidate/SUCCESS && ! -e $candidate/FAILED ]] || { echo 'Attempt already used' >&2; exit 1; }
+cleanup() {
+  local result=$?
+  if (( result != 0 )); then
+    touch "$candidate/FAILED"
+    echo 'Demo publication failed; inspect current pointer before retrying.' >&2
+  fi
+}
+trap cleanup EXIT
 public=$candidate/public
 [[ -f $public/index.html && -f $public/version.json && -d $public/assets && -f $candidate/checksums.sha256 ]] || exit 1
 [[ -z $(find "$public" ! -type f ! -type d -print -quit) ]] || { echo 'Only regular files and directories allowed' >&2; exit 1; }
@@ -24,7 +32,6 @@ commit=$(jq -er '.commit' "$public/version.json")
 release=$(jq -er '.release' "$public/version.json")
 origin=$(jq -er '.origin' "$public/version.json")
 [[ $commit =~ ^[a-f0-9]{40}$ && $(basename "$candidate") == "$commit"-* && $origin == https://demo.revengedog.online ]] || exit 1
-trap 'touch "$candidate/FAILED"; echo "Demo publication failed; inspect current pointer before retrying." >&2' ERR
 
 # Retain old hash chunks inside the next tree so open tabs can load lazy assets after switching.
 if [[ -e $root/demo/current || -L $root/demo/current ]]; then
@@ -63,5 +70,4 @@ done < "$candidate/checksums.sha256"
 code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 30 "$origin/traceflow-release.json")
 [[ $code == 404 ]] || exit 1
 touch "$candidate/SUCCESS"
-trap - ERR
 echo "Demo published: $release"
