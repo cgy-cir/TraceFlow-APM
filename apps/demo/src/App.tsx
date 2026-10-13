@@ -29,10 +29,8 @@ function App() {
     // React vs Vue: effect 对应 onMounted；开发模式 StrictMode 会额外执行一次 setup/cleanup，因此显式守卫副作用。
     if (performanceWarmupStarted) return
     performanceWarmupStarted = true
-    void Promise.allSettled([
-      fetch(`${apiOrigin}/api/v1/health?source=performance-demo`),
-      fetch(`${apiOrigin}/api/v1/applications?source=performance-demo`),
-    ])
+    // 公开 Demo 只用公开接口预热，不能请求需要登录和受限 Origin 的管理接口。
+    void fetch(`${apiOrigin}/api/v1/health?source=performance-demo`).catch(() => undefined)
   }, [])
 
   function record(label: string, detail: string) {

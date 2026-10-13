@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext } from '@playwright/test'
+import { expect, type APIRequestContext, type Request } from '@playwright/test'
 import { test, apiBaseUrl, consoleBaseUrl, demoBaseUrl } from './auth-helpers'
 
 interface Application {
@@ -21,12 +21,20 @@ interface ResourceDetail {
 test('Demo 性能事件可以聚合并进入性能工作台', async ({ page, request }) => {
   const applicationId = await getDemoApplicationId(request)
   const startedAt = Date.now()
+  const demoRequests: string[] = []
+  const recordRequest = (request: Request) => {
+    demoRequests.push(new URL(request.url()).pathname)
+  }
+  page.on('request', recordRequest)
 
   await page.goto(demoBaseUrl)
   await page.getByRole('button', { name: /慢交互/ }).click()
   await page.getByRole('button', { name: /布局偏移/ }).click()
   await page.waitForTimeout(5_500)
   await page.getByRole('button', { name: /立即上报/ }).click()
+  expect(demoRequests).toContain('/api/v1/health')
+  expect(demoRequests).not.toContain('/api/v1/applications')
+  page.off('request', recordRequest)
 
   const from = startedAt - 60_000
   const to = Date.now() + 60_000

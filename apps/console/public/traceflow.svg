@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>TraceFlow</title>
+  <rect width="32" height="32" rx="7" fill="#176b5b"/>
+  <path fill="#fff" d="M5 9h11v3h-4v11H9V12H5zm14 0h9v3h-6v3h5v3h-5v5h-3z"/>
+</svg>
